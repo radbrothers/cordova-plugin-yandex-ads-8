@@ -72,50 +72,34 @@ internal class BannerAdsHelper(
                 bannerParrentLayout?.addView(mBannerAdView, bannerLayoutParams)
                 bannerParrentLayout?.bringToFront()
             } else {
-                // inline banner — LinearLayout approach from admob-plus Banner.java
                 val view = cordovaWebView.view
                 val wvParentView = view.parent as? ViewGroup
 
                 if (wvParentView != null) {
                     wvParentView.removeView(view)
 
-                    val linearLayout = object : LinearLayout(cordova.activity) {
-                        override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
-                            super.onMeasure(widthMeasureSpec, heightMeasureSpec)
-                            val bannerH = bannerContainerLayout?.measuredHeight ?: 0
-                            if (bannerH > 0) {
-                                val webViewH = measuredHeight - bannerH
-                                val webView = cordovaWebView.view
-                                val wvLp = webView.layoutParams as? LinearLayout.LayoutParams ?: return
-                                if (wvLp.height != webViewH) {
-                                    wvLp.height = webViewH
-                                    wvLp.weight = 0f
-                                    webView.layoutParams = wvLp
-                                    log("+++ onMeasure override: measuredH=$measuredHeight bannerH=$bannerH webViewH=$webViewH")
-                                }
-                            }
-                        }
-                    }
-                    linearLayout.orientation = LinearLayout.VERTICAL
-                    linearLayout.layoutParams = LinearLayout.LayoutParams(
+                    // wrap WebView in FrameLayout — LinearLayout controls the wrapper height via weight,
+                    // not the WebView directly (SystemWebView rejects LinearLayout.LayoutParams)
+                    val webViewWrapper = android.widget.FrameLayout(cordova.activity)
+                    webViewWrapper.addView(view, ViewGroup.LayoutParams(
                         ViewGroup.LayoutParams.MATCH_PARENT,
-                        ViewGroup.LayoutParams.MATCH_PARENT,
-                        0.0f
-                    )
-                    // set BEFORE addView — key difference from our previous attempts
-                    view.layoutParams = LinearLayout.LayoutParams(
-                        ViewGroup.LayoutParams.MATCH_PARENT,
-                        ViewGroup.LayoutParams.MATCH_PARENT,
-                        1.0f
-                    )
-                    linearLayout.addView(view)
+                        ViewGroup.LayoutParams.MATCH_PARENT
+                    ))
 
-                    // add WITHOUT explicit layoutParams — let ContentFrameLayout assign them
-                    wvParentView.addView(linearLayout)
+                    val linearLayout = LinearLayout(cordova.activity)
+                    linearLayout.orientation = LinearLayout.VERTICAL
+
+                    val wrapperLp = LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        0, 1.0f  // weight=1 on the wrapper, not on WebView
+                    )
+                    val bannerLp = LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT
+                    )
 
                     bannerContainerLayout = RelativeLayout(cordova.activity)
                     bannerContainerLayout?.setBackgroundColor(0x000000)
-
                     val adLayoutParams = RelativeLayout.LayoutParams(
                         RelativeLayout.LayoutParams.WRAP_CONTENT,
                         RelativeLayout.LayoutParams.WRAP_CONTENT
@@ -124,10 +108,14 @@ internal class BannerAdsHelper(
                     bannerContainerLayout?.addView(mBannerAdView, adLayoutParams)
 
                     if (bannerAtTop) {
-                        linearLayout.addView(bannerContainerLayout, 0)
+                        linearLayout.addView(bannerContainerLayout, bannerLp)
+                        linearLayout.addView(webViewWrapper, wrapperLp)
                     } else {
-                        linearLayout.addView(bannerContainerLayout)
+                        linearLayout.addView(webViewWrapper, wrapperLp)
+                        linearLayout.addView(bannerContainerLayout, bannerLp)
                     }
+
+                    wvParentView.addView(linearLayout)
                 }
 
                 val contentView = cordova.activity.findViewById<ViewGroup>(R.id.content)
@@ -308,8 +296,23 @@ internal class BannerAdsHelper(
         cordova.getActivity().runOnUiThread(Runnable {
             val parentLayout = getParentLayout()
 
-            bannerContainerLayout?.let { it.removeView(mBannerAdView) }
-            parentLayout?.let { it.removeView(bannerContainerLayout) }
+            // if WebView was wrapped — unwrap it back to original parent
+            val view = cordovaWebView.view
+            val wvWrapper = view.parent as? android.widget.FrameLayout
+            val linearLayout = wvWrapper?.parent as? LinearLayout
+            val originalParent = linearLayout?.parent as? ViewGroup
+
+            if (originalParent != null && wvWrapper != null && linearLayout != null) {
+                wvWrapper.removeView(view)
+                originalParent.removeView(linearLayout)
+                originalParent.addView(view, ViewGroup.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.MATCH_PARENT
+                ))
+            }
+
+            bannerContainerLayout?.removeView(mBannerAdView)
+            bannerContainerLayout = null
 
             destroyBanner()
         })
