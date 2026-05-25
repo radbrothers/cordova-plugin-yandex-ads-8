@@ -113,15 +113,18 @@ internal class BannerAdsHelper(
                         linearLayout.addView(bannerContainerLayout)
                     }
 
-                    linearLayout.postDelayed({
-                        val widthSpec = View.MeasureSpec.makeMeasureSpec(wvParentView.width, View.MeasureSpec.EXACTLY)
-                        val heightSpec = View.MeasureSpec.makeMeasureSpec(wvParentView.height, View.MeasureSpec.EXACTLY)
-                        linearLayout.measure(widthSpec, heightSpec)
-                        linearLayout.layout(0, 0, wvParentView.width, wvParentView.height)
-                        log("+++ forced measure/layout: w=${wvParentView.width} h=${wvParentView.height}")
-                        log("+++ child[0]: ${linearLayout.getChildAt(0)?.javaClass?.simpleName} h=${linearLayout.getChildAt(0)?.measuredHeight}")
-                        log("+++ child[1]: ${linearLayout.getChildAt(1)?.javaClass?.simpleName} h=${linearLayout.getChildAt(1)?.measuredHeight}")
-                    }, 300)
+                    wvParentView.viewTreeObserver.addOnGlobalLayoutListener(object : OnGlobalLayoutListener {
+                        override fun onGlobalLayout() {
+                            wvParentView.viewTreeObserver.removeOnGlobalLayoutListener(this)
+                            val widthSpec = View.MeasureSpec.makeMeasureSpec(wvParentView.width, View.MeasureSpec.EXACTLY)
+                            val heightSpec = View.MeasureSpec.makeMeasureSpec(wvParentView.height, View.MeasureSpec.EXACTLY)
+                            linearLayout.measure(widthSpec, heightSpec)
+                            linearLayout.layout(0, 0, wvParentView.width, wvParentView.height)
+                            log("+++ OnGlobalLayout measure/layout: w=${wvParentView.width} h=${wvParentView.height}")
+                            log("+++ child[0]: ${linearLayout.getChildAt(0)?.javaClass?.simpleName} h=${linearLayout.getChildAt(0)?.measuredHeight}")
+                            log("+++ child[1]: ${linearLayout.getChildAt(1)?.javaClass?.simpleName} h=${linearLayout.getChildAt(1)?.measuredHeight}")
+                        }
+                    })
                 }
 
                 val contentView = cordova.activity.findViewById<ViewGroup>(R.id.content)
