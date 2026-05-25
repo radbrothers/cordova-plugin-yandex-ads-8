@@ -79,7 +79,23 @@ internal class BannerAdsHelper(
                 if (wvParentView != null) {
                     wvParentView.removeView(view)
 
-                    val linearLayout = LinearLayout(cordova.activity)
+                    val linearLayout = object : LinearLayout(cordova.activity) {
+                        override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
+                            super.onMeasure(widthMeasureSpec, heightMeasureSpec)
+                            val bannerH = bannerContainerLayout?.measuredHeight ?: 0
+                            if (bannerH > 0) {
+                                val webViewH = measuredHeight - bannerH
+                                val webView = cordovaWebView.view
+                                val wvLp = webView.layoutParams as? LinearLayout.LayoutParams ?: return
+                                if (wvLp.height != webViewH) {
+                                    wvLp.height = webViewH
+                                    wvLp.weight = 0f
+                                    webView.layoutParams = wvLp
+                                    log("+++ onMeasure override: measuredH=$measuredHeight bannerH=$bannerH webViewH=$webViewH")
+                                }
+                            }
+                        }
+                    }
                     linearLayout.orientation = LinearLayout.VERTICAL
                     linearLayout.layoutParams = LinearLayout.LayoutParams(
                         ViewGroup.LayoutParams.MATCH_PARENT,
@@ -112,19 +128,6 @@ internal class BannerAdsHelper(
                     } else {
                         linearLayout.addView(bannerContainerLayout)
                     }
-
-                    wvParentView.viewTreeObserver.addOnGlobalLayoutListener(object : OnGlobalLayoutListener {
-                        override fun onGlobalLayout() {
-                            wvParentView.viewTreeObserver.removeOnGlobalLayoutListener(this)
-                            val widthSpec = View.MeasureSpec.makeMeasureSpec(wvParentView.width, View.MeasureSpec.EXACTLY)
-                            val heightSpec = View.MeasureSpec.makeMeasureSpec(wvParentView.height, View.MeasureSpec.EXACTLY)
-                            linearLayout.measure(widthSpec, heightSpec)
-                            linearLayout.layout(0, 0, wvParentView.width, wvParentView.height)
-                            log("+++ OnGlobalLayout measure/layout: w=${wvParentView.width} h=${wvParentView.height}")
-                            log("+++ child[0]: ${linearLayout.getChildAt(0)?.javaClass?.simpleName} h=${linearLayout.getChildAt(0)?.measuredHeight}")
-                            log("+++ child[1]: ${linearLayout.getChildAt(1)?.javaClass?.simpleName} h=${linearLayout.getChildAt(1)?.measuredHeight}")
-                        }
-                    })
                 }
 
                 val contentView = cordova.activity.findViewById<ViewGroup>(R.id.content)
