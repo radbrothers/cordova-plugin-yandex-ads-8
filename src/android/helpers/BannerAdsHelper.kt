@@ -95,13 +95,12 @@ internal class BannerAdsHelper(
                 bannerContainerLayout = RelativeLayout(cordovaPlugin.cordova.activity)
                 bannerContainerLayout?.setBackgroundColor(0x000000)
 
-                val layoutParams = RelativeLayout.LayoutParams(
+                val adLayoutParams = RelativeLayout.LayoutParams(
                     RelativeLayout.LayoutParams.WRAP_CONTENT,
                     RelativeLayout.LayoutParams.WRAP_CONTENT
                 )
-                layoutParams.addRule(RelativeLayout.CENTER_HORIZONTAL)
-                bannerContainerLayout?.addView(mBannerAdView, layoutParams)
-                mBannerAdView?.layoutParams = layoutParams
+                adLayoutParams.addRule(RelativeLayout.CENTER_HORIZONTAL)
+                bannerContainerLayout?.addView(mBannerAdView, adLayoutParams)
 
                 // show banner
                 val bannerLayoutParams = LinearLayout.LayoutParams(
@@ -114,20 +113,19 @@ internal class BannerAdsHelper(
                     parentView.addView(bannerContainerLayout, bannerLayoutParams)
                 }
 
-                // Once banner is measured — shrink WebView to leave room for banner
+                // Once banner height is known — apply padding to WebView so content is not obscured
                 bannerContainerLayout?.viewTreeObserver?.addOnGlobalLayoutListener(object : OnGlobalLayoutListener {
                     override fun onGlobalLayout() {
                         bannerContainerLayout?.viewTreeObserver?.removeOnGlobalLayoutListener(this)
-
                         val bannerHeight = bannerContainerLayout?.measuredHeight ?: return
-                        val parentHeight = parentView.measuredHeight
-                        if (bannerHeight > 0 && parentHeight > 0) {
-                            val webViewHeight = parentHeight - bannerHeight
-                            view.layoutParams = view.layoutParams.also {
-                                it.height = webViewHeight
+                        log("+++ bannerHeight=$bannerHeight")
+                        if (bannerHeight > 0) {
+                            if (bannerAtTop) {
+                                view.setPadding(0, bannerHeight, 0, 0)
+                            } else {
+                                view.setPadding(0, 0, 0, bannerHeight)
                             }
                             view.requestLayout()
-                            log("+++ bannerHeight=$bannerHeight parentHeight=$parentHeight webViewHeight=$webViewHeight")
                         }
                     }
                 })
