@@ -82,11 +82,11 @@ internal class BannerAdsHelper(
                     parentView.orientation = LinearLayout.VERTICAL
                     parentView.layoutParams = LinearLayout.LayoutParams(
                         ViewGroup.LayoutParams.MATCH_PARENT,
-                        ViewGroup.LayoutParams.MATCH_PARENT, 0.0f
+                        ViewGroup.LayoutParams.MATCH_PARENT
                     )
                     view.layoutParams = LinearLayout.LayoutParams(
                         ViewGroup.LayoutParams.MATCH_PARENT,
-                        ViewGroup.LayoutParams.MATCH_PARENT, 1.0f
+                        0, 1.0f  // height=0dp so weight=1.0f fills remaining space
                     )
                     parentView.addView(view)
                     wvParentView
