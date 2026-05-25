@@ -5,12 +5,12 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.yandex.mobile.ads.common.AdRequestError
 import com.yandex.mobile.ads.common.ImpressionData
-import com.yandex.mobile.ads.feed.FeedAd
-import com.yandex.mobile.ads.feed.FeedAdAdapter
-import com.yandex.mobile.ads.feed.FeedAdAppearance
-import com.yandex.mobile.ads.feed.FeedAdEventListener
-import com.yandex.mobile.ads.feed.FeedAdLoadListener
-import com.yandex.mobile.ads.feed.FeedAdRequestConfiguration
+import com.yandex.mobile.ads.nativeads.FeedAd // FIXME_SDK8: Auto-generated during migration, please review.
+import com.yandex.mobile.ads.nativeads.FeedAdAdapter // FIXME_SDK8: Auto-generated during migration, please review.
+import com.yandex.mobile.ads.nativeads.FeedAdAppearance // FIXME_SDK8: Auto-generated during migration, please review.
+import com.yandex.mobile.ads.nativeads.FeedAdEventListener // FIXME_SDK8: Auto-generated during migration, please review.
+import com.yandex.mobile.ads.nativeads.FeedAdLoadListener // FIXME_SDK8: Auto-generated during migration, please review.
+import com.yandex.mobile.ads.nativeads.FeedAdRequestConfiguration // FIXME_SDK8: Auto-generated during migration, please review.
 import io.luzh.cordova.plugin.utils.ConstantsEvents
 import io.luzh.cordova.plugin.utils.ScreenUtil.screenWidth
 import org.apache.cordova.CallbackContext
@@ -33,11 +33,11 @@ internal class FeedAdsHelper(
             cardWidth = calculatedFeedCardWidth,
             cardCornerRadius = CARD_CORNER_RADIUS_DP
         )
-        val feedAdRequestConfiguration = FeedAdRequestConfiguration.Builder(blockId).build()
+        val feedAdRequestConfiguration = FeedAdRequestConfiguration.Builder(blockId).build() // FIXME_SDK8: Auto-generated during migration, please review.
 
         feedAd =
             FeedAd.Builder(cordova.context, feedAdRequestConfiguration, feedAdAppearance).build()
-        feedAd?.loadListener = getAdLoadListener()
+        feedAd?.loadListener = getAdLoadListener() // FIXME_SDK8: Auto-generated during migration, please review.
         feedAd?.preloadAd()
 
         callbackContext.success()
