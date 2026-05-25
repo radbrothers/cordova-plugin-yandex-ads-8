@@ -75,6 +75,10 @@ internal class BannerAdsHelper(
                 val wvParentView = view.parent as? ViewGroup
                 val parentView = LinearLayout(cordovaWebView.context)
 
+                log("+++ wvParentView type: ${wvParentView?.javaClass?.simpleName}")
+                log("+++ view type: ${view.javaClass.simpleName}")
+                log("+++ view.layoutParams type: ${view.layoutParams?.javaClass?.simpleName}")
+                log("+++ view.layoutParams: w=${view.layoutParams?.width} h=${view.layoutParams?.height}")
                 // if we have a parent of this element,
                 // we remove it from there and put it in the linerLayout
                 val rootView: ViewGroup? = if (wvParentView != null) {
@@ -97,6 +101,10 @@ internal class BannerAdsHelper(
                     ViewGroup.LayoutParams.MATCH_PARENT,
                     ViewGroup.LayoutParams.MATCH_PARENT
                 ))
+
+                log("+++ parentView children count: ${parentView.childCount}")
+                log("+++ parentView layoutParams: w=${parentView.layoutParams?.width} h=${parentView.layoutParams?.height}")
+                log("+++ webView layoutParams after reparent: w=${view.layoutParams?.width} h=${view.layoutParams?.height} type=${view.layoutParams?.javaClass?.simpleName}")
 
                 bannerContainerLayout = RelativeLayout(cordovaPlugin.cordova.activity)
 
@@ -138,6 +146,10 @@ internal class BannerAdsHelper(
                 } else {
                     parentView.addView(bannerContainerLayout, bannerLayoutParams)
                 }
+
+                log("+++ parentView children after banner add: ${parentView.childCount}")
+                log("+++ parentView child[0]: ${parentView.getChildAt(0)?.javaClass?.simpleName} lp: w=${parentView.getChildAt(0)?.layoutParams?.width} h=${parentView.getChildAt(0)?.layoutParams?.height}")
+                log("+++ parentView child[1]: ${parentView.getChildAt(1)?.javaClass?.simpleName} lp: w=${parentView.getChildAt(1)?.layoutParams?.width} h=${parentView.getChildAt(1)?.layoutParams?.height}")
 
                 val contentView = cordova.activity.findViewById<ViewGroup>(R.id.content)
                 if (contentView != null) {
