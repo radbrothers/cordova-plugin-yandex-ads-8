@@ -105,13 +105,17 @@ internal class BannerAdsHelper(
                         val adViewHeight = mBannerAdView?.measuredHeight ?: 0
                         log("+++ onGlobalLayout fired: bannerContainerHeight=$bannerHeight adViewHeight=$adViewHeight")
                         if (bannerHeight > 0) {
+                            val lp = cordovaWebView.view.layoutParams
                             if (bannerAtTop) {
-                                cordovaWebView.view.setPadding(0, bannerHeight, 0, 0)
+                                lp.height = wvParent.measuredHeight - bannerHeight
+                                cordovaWebView.view.y = bannerHeight.toFloat()
                             } else {
-                                cordovaWebView.view.setPadding(0, 0, 0, bannerHeight)
+                                lp.height = wvParent.measuredHeight - bannerHeight
+                                cordovaWebView.view.y = 0f
                             }
+                            cordovaWebView.view.layoutParams = lp
                             cordovaWebView.view.requestLayout()
-                            log("+++ padding applied: bannerAtTop=$bannerAtTop height=$bannerHeight")
+                            log("+++ wvParent.measuredHeight=${wvParent.measuredHeight} newHeight=${lp.height} y=${cordovaWebView.view.y}")
                         } else {
                             log("+++ WARNING: bannerHeight=0, padding not applied")
                         }
@@ -287,11 +291,14 @@ internal class BannerAdsHelper(
 
     private fun hideBannerView() {
         cordova.getActivity().runOnUiThread(Runnable {
-            // remove padding from WebView
-            cordovaWebView.view.setPadding(0, 0, 0, 0)
+            // restore WebView original size and position
+            val lp = cordovaWebView.view.layoutParams
+            lp.height = ViewGroup.LayoutParams.MATCH_PARENT
+            cordovaWebView.view.layoutParams = lp
+            cordovaWebView.view.y = 0f
+            cordovaWebView.view.requestLayout()
 
             val parentLayout = getParentLayout()
-
             bannerContainerLayout?.let { it.removeView(mBannerAdView) }
             parentLayout?.let { it.removeView(bannerContainerLayout) }
 
