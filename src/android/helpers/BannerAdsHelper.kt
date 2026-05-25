@@ -112,11 +112,13 @@ internal class BannerAdsHelper(
                         linearLayout.addView(bannerContainerLayout)
                     }
 
-                    // force layout recalculation — weight won't apply until parent redraws
-                    linearLayout.requestLayout()
-                    linearLayout.invalidate()
-                    wvParentView.requestLayout()
-                    wvParentView.invalidate()
+                    // delay to ensure layout pass has completed
+                    linearLayout.postDelayed({
+                        linearLayout.requestLayout()
+                        linearLayout.invalidate()
+                        wvParentView.requestLayout()
+                        wvParentView.invalidate()
+                    }, 300)
                 }
 
                 val contentView = cordova.activity.findViewById<ViewGroup>(R.id.content)
