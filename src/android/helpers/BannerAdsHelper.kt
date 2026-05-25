@@ -73,71 +73,34 @@ internal class BannerAdsHelper(
             } else {
                 val view = cordovaWebView.view
                 val wvParentView = view.parent as? ViewGroup
-                val parentView = LinearLayout(cordovaWebView.context)
 
-                log("+++ wvParentView type: ${wvParentView?.javaClass?.simpleName}")
-                log("+++ view type: ${view.javaClass.simpleName}")
-                log("+++ view.layoutParams type: ${view.layoutParams?.javaClass?.simpleName}")
-                log("+++ view.layoutParams: w=${view.layoutParams?.width} h=${view.layoutParams?.height}")
-                // if we have a parent of this element,
-                // we remove it from there and put it in the linerLayout
                 val rootView: ViewGroup? = if (wvParentView != null) {
                     val originalLayoutParams = view.layoutParams
-                    log("+++ originalLayoutParams type: ${originalLayoutParams?.javaClass?.simpleName} w=${originalLayoutParams?.width} h=${originalLayoutParams?.height}")
                     wvParentView.removeView(view)
+
                     parentView.orientation = LinearLayout.VERTICAL
                     parentView.layoutParams = originalLayoutParams
-                    view.layoutParams = LinearLayout.LayoutParams(
+
+                    parentView.addView(view, ViewGroup.LayoutParams(
                         ViewGroup.LayoutParams.MATCH_PARENT,
-                        0, 1.0f  // height=0dp so weight=1.0f fills remaining space
-                    )
-                    parentView.addView(view)
-                    // Force LinearLayout.LayoutParams — FrameLayout.LayoutParams from ContentFrameLayout
-                    // are not compatible with LinearLayout weight distribution
-                    view.layoutParams = LinearLayout.LayoutParams(
-                        ViewGroup.LayoutParams.MATCH_PARENT,
-                        0, 1.0f
-                    )
-                    log("+++ webView layoutParams forced: type=${view.layoutParams?.javaClass?.simpleName} w=${view.layoutParams?.width} h=${view.layoutParams?.height}")
+                        ViewGroup.LayoutParams.MATCH_PARENT
+                    ))
                     wvParentView
                 } else {
                     view as? ViewGroup
                 }
                 rootView?.addView(parentView, parentView.layoutParams)
 
-                log("+++ parentView children count: ${parentView.childCount}")
-                log("+++ parentView layoutParams: w=${parentView.layoutParams?.width} h=${parentView.layoutParams?.height}")
-                log("+++ webView layoutParams after reparent: w=${view.layoutParams?.width} h=${view.layoutParams?.height} type=${view.layoutParams?.javaClass?.simpleName}")
-
                 bannerContainerLayout = RelativeLayout(cordovaPlugin.cordova.activity)
-
-                bannerContainerLayout?.gravity = Gravity.BOTTOM
                 bannerContainerLayout?.setBackgroundColor(0x000000)
 
                 val layoutParams = RelativeLayout.LayoutParams(
                     RelativeLayout.LayoutParams.WRAP_CONTENT,
                     RelativeLayout.LayoutParams.WRAP_CONTENT
                 )
-
                 layoutParams.addRule(RelativeLayout.CENTER_HORIZONTAL)
-
                 bannerContainerLayout?.addView(mBannerAdView, layoutParams)
-
                 mBannerAdView?.layoutParams = layoutParams
-
-                // detect banner size
-                val vto = mBannerAdView?.viewTreeObserver
-                vto?.addOnGlobalLayoutListener(object : OnGlobalLayoutListener {
-                    override fun onGlobalLayout() {
-                        mBannerAdView?.viewTreeObserver?.removeOnGlobalLayoutListener(
-                            this
-                        )
-
-                        mBannerAdView?.measuredHeight?.let {
-                            bannerContainerLayout?.minimumHeight = it
-                        }
-                    }
-                })
 
                 // show banner
                 val bannerLayoutParams = LinearLayout.LayoutParams(
@@ -150,9 +113,23 @@ internal class BannerAdsHelper(
                     parentView.addView(bannerContainerLayout, bannerLayoutParams)
                 }
 
-                log("+++ parentView children after banner add: ${parentView.childCount}")
-                log("+++ parentView child[0]: ${parentView.getChildAt(0)?.javaClass?.simpleName} lp: w=${parentView.getChildAt(0)?.layoutParams?.width} h=${parentView.getChildAt(0)?.layoutParams?.height}")
-                log("+++ parentView child[1]: ${parentView.getChildAt(1)?.javaClass?.simpleName} lp: w=${parentView.getChildAt(1)?.layoutParams?.width} h=${parentView.getChildAt(1)?.layoutParams?.height}")
+                // Once banner is measured — shrink WebView to leave room for banner
+                bannerContainerLayout?.viewTreeObserver?.addOnGlobalLayoutListener(object : OnGlobalLayoutListener {
+                    override fun onGlobalLayout() {
+                        bannerContainerLayout?.viewTreeObserver?.removeOnGlobalLayoutListener(this)
+
+                        val bannerHeight = bannerContainerLayout?.measuredHeight ?: return
+                        val parentHeight = parentView.measuredHeight
+                        if (bannerHeight > 0 && parentHeight > 0) {
+                            val webViewHeight = parentHeight - bannerHeight
+                            view.layoutParams = view.layoutParams.also {
+                                it.height = webViewHeight
+                            }
+                            view.requestLayout()
+                            log("+++ bannerHeight=$bannerHeight parentHeight=$parentHeight webViewHeight=$webViewHeight")
+                        }
+                    }
+                })
 
                 val contentView = cordova.activity.findViewById<ViewGroup>(R.id.content)
                 if (contentView != null) {
