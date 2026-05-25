@@ -93,7 +93,10 @@ internal class BannerAdsHelper(
                 } else {
                     view as? ViewGroup
                 }
-                rootView?.addView(parentView)
+                rootView?.addView(parentView, ViewGroup.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.MATCH_PARENT
+                ))
 
                 bannerContainerLayout = RelativeLayout(cordovaPlugin.cordova.activity)
 
@@ -126,10 +129,14 @@ internal class BannerAdsHelper(
                 })
 
                 // show banner
+                val bannerLayoutParams = LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT
+                )
                 if (bannerAtTop) {
-                    parentView.addView(bannerContainerLayout, 0)
+                    parentView.addView(bannerContainerLayout, 0, bannerLayoutParams)
                 } else {
-                    parentView.addView(bannerContainerLayout)
+                    parentView.addView(bannerContainerLayout, bannerLayoutParams)
                 }
 
                 val contentView = cordova.activity.findViewById<ViewGroup>(R.id.content)
