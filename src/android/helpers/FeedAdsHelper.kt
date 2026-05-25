@@ -5,12 +5,12 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.yandex.mobile.ads.common.AdRequestError
 import com.yandex.mobile.ads.common.ImpressionData
-import com.yandex.mobile.ads.nativeads.FeedAd // FIXME_SDK8: Auto-generated during migration, please review.
-import com.yandex.mobile.ads.nativeads.FeedAdAdapter // FIXME_SDK8: Auto-generated during migration, please review.
-import com.yandex.mobile.ads.nativeads.FeedAdAppearance // FIXME_SDK8: Auto-generated during migration, please review.
-import com.yandex.mobile.ads.nativeads.FeedAdEventListener // FIXME_SDK8: Auto-generated during migration, please review.
-import com.yandex.mobile.ads.nativeads.FeedAdLoadListener // FIXME_SDK8: Auto-generated during migration, please review.
-import com.yandex.mobile.ads.nativeads.FeedAdRequestConfiguration // FIXME_SDK8: Auto-generated during migration, please review.
+import com.yandex.mobile.ads.feed.FeedAd // FIXME_SDK8: Auto-generated during migration, please review.
+import com.yandex.mobile.ads.feed.FeedAdAdapter // FIXME_SDK8: Auto-generated during migration, please review.
+import com.yandex.mobile.ads.feed.FeedAdAppearance // FIXME_SDK8: Auto-generated during migration, please review.
+import com.yandex.mobile.ads.feed.FeedAdEventListener // FIXME_SDK8: Auto-generated during migration, please review.
+import com.yandex.mobile.ads.feed.FeedAdLoadListener // FIXME_SDK8: Auto-generated during migration, please review.
+import com.yandex.mobile.ads.feed.FeedAdRequestConfiguration // FIXME_SDK8: Auto-generated during migration, please review.
 import io.luzh.cordova.plugin.utils.ConstantsEvents
 import io.luzh.cordova.plugin.utils.ScreenUtil.screenWidth
 import org.apache.cordova.CallbackContext
