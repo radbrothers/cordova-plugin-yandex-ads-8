@@ -1,0 +1,47 @@
+{
+  "name": "cordova-plugin-yandex-ads",
+  "version": "3.0.0-0",
+  "description": "Yandex ads for cordova based development",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/maximnara/cordova-plugin-yandex-ads.git"
+  },
+  "keywords": [
+    "cordova",
+    "ecosystem:cordova",
+    "cordova-android",
+    "cordova-ios"
+  ],
+  "author": "Maksim Luzhkov",
+  "license": "MIT",
+  "cordova": {
+    "id": "cordova-plugin-yandex-ads",
+    "platforms": [
+      "android",
+      "ios"
+    ]
+  },
+  "engines": [
+    {
+      "name": "cordova",
+      "version": ">=6.5.0"
+    },
+    {
+      "cordovaDependencies": {
+        ">0.1.2": {
+          "cordova-plugin-add-swift-support": ">2.0.2"
+        }
+      }
+    }
+  ],
+  "dependencies": {
+    "node": "^16.4.0"
+  },
+  "devDependencies": {
+    "cordova": "^11.0.0"
+  },
+  "bugs": {
+    "url": "https://github.com/maximnara/cordova-plugin-yandex-ads/issues"
+  },
+  "homepage": "https://github.com/maximnara/cordova-plugin-yandex-ads"
+}
