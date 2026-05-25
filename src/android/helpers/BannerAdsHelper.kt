@@ -92,6 +92,13 @@ internal class BannerAdsHelper(
                         0, 1.0f  // height=0dp so weight=1.0f fills remaining space
                     )
                     parentView.addView(view)
+                    // Force LinearLayout.LayoutParams — FrameLayout.LayoutParams from ContentFrameLayout
+                    // are not compatible with LinearLayout weight distribution
+                    view.layoutParams = LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        0, 1.0f
+                    )
+                    log("+++ webView layoutParams forced: type=${view.layoutParams?.javaClass?.simpleName} w=${view.layoutParams?.width} h=${view.layoutParams?.height}")
                     wvParentView
                 } else {
                     view as? ViewGroup
