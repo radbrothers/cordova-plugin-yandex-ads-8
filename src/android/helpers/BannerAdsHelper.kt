@@ -94,13 +94,16 @@ internal class BannerAdsHelper(
 
                 wvParent.addView(bannerContainerLayout, containerLayoutParams)
                 bannerContainerLayout?.bringToFront()
+                log("+++ wvParent type: ${wvParent.javaClass.simpleName}")
+                log("+++ wvParent childCount after add: ${wvParent.childCount}")
 
                 // once banner height is known — pad WebView so content is not obscured
                 bannerContainerLayout?.viewTreeObserver?.addOnGlobalLayoutListener(object : OnGlobalLayoutListener {
                     override fun onGlobalLayout() {
                         bannerContainerLayout?.viewTreeObserver?.removeOnGlobalLayoutListener(this)
-                        val bannerHeight = bannerContainerLayout?.measuredHeight ?: return
-                        log("+++ bannerHeight=$bannerHeight")
+                        val bannerHeight = bannerContainerLayout?.measuredHeight ?: 0
+                        val adViewHeight = mBannerAdView?.measuredHeight ?: 0
+                        log("+++ onGlobalLayout fired: bannerContainerHeight=$bannerHeight adViewHeight=$adViewHeight")
                         if (bannerHeight > 0) {
                             if (bannerAtTop) {
                                 cordovaWebView.view.setPadding(0, bannerHeight, 0, 0)
@@ -108,6 +111,9 @@ internal class BannerAdsHelper(
                                 cordovaWebView.view.setPadding(0, 0, 0, bannerHeight)
                             }
                             cordovaWebView.view.requestLayout()
+                            log("+++ padding applied: bannerAtTop=$bannerAtTop height=$bannerHeight")
+                        } else {
+                            log("+++ WARNING: bannerHeight=0, padding not applied")
                         }
                     }
                 })
