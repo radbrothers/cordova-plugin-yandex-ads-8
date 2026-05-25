@@ -112,12 +112,21 @@ internal class BannerAdsHelper(
                         linearLayout.addView(bannerContainerLayout)
                     }
 
+                    log("+++ linearLayout childCount: ${linearLayout.childCount}")
+                    log("+++ child[0]: ${linearLayout.getChildAt(0)?.javaClass?.simpleName}")
+                    log("+++ child[1]: ${linearLayout.getChildAt(1)?.javaClass?.simpleName}")
+                    log("+++ wvParentView type: ${wvParentView.javaClass.simpleName}")
+                    log("+++ wvParentView childCount: ${wvParentView.childCount}")
+
                     // delay to ensure layout pass has completed
                     linearLayout.postDelayed({
                         linearLayout.requestLayout()
                         linearLayout.invalidate()
                         wvParentView.requestLayout()
                         wvParentView.invalidate()
+                        log("+++ after postDelayed — linearLayout childCount: ${linearLayout.childCount}")
+                        log("+++ after postDelayed — child[0]: ${linearLayout.getChildAt(0)?.javaClass?.simpleName} h=${linearLayout.getChildAt(0)?.measuredHeight}")
+                        log("+++ after postDelayed — child[1]: ${linearLayout.getChildAt(1)?.javaClass?.simpleName} h=${linearLayout.getChildAt(1)?.measuredHeight}")
                     }, 300)
                 }
 
