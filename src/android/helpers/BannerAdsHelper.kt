@@ -2,6 +2,7 @@ package io.luzh.cordova.plugin.helpers
 
 import android.R
 import android.view.Gravity
+import android.view.View
 import android.view.ViewGroup
 import android.view.ViewTreeObserver.OnGlobalLayoutListener
 import android.widget.LinearLayout
@@ -112,21 +113,14 @@ internal class BannerAdsHelper(
                         linearLayout.addView(bannerContainerLayout)
                     }
 
-                    log("+++ linearLayout childCount: ${linearLayout.childCount}")
-                    log("+++ child[0]: ${linearLayout.getChildAt(0)?.javaClass?.simpleName}")
-                    log("+++ child[1]: ${linearLayout.getChildAt(1)?.javaClass?.simpleName}")
-                    log("+++ wvParentView type: ${wvParentView.javaClass.simpleName}")
-                    log("+++ wvParentView childCount: ${wvParentView.childCount}")
-
-                    // delay to ensure layout pass has completed
                     linearLayout.postDelayed({
-                        linearLayout.requestLayout()
-                        linearLayout.invalidate()
-                        wvParentView.requestLayout()
-                        wvParentView.invalidate()
-                        log("+++ after postDelayed — linearLayout childCount: ${linearLayout.childCount}")
-                        log("+++ after postDelayed — child[0]: ${linearLayout.getChildAt(0)?.javaClass?.simpleName} h=${linearLayout.getChildAt(0)?.measuredHeight}")
-                        log("+++ after postDelayed — child[1]: ${linearLayout.getChildAt(1)?.javaClass?.simpleName} h=${linearLayout.getChildAt(1)?.measuredHeight}")
+                        val widthSpec = View.MeasureSpec.makeMeasureSpec(wvParentView.width, View.MeasureSpec.EXACTLY)
+                        val heightSpec = View.MeasureSpec.makeMeasureSpec(wvParentView.height, View.MeasureSpec.EXACTLY)
+                        linearLayout.measure(widthSpec, heightSpec)
+                        linearLayout.layout(0, 0, wvParentView.width, wvParentView.height)
+                        log("+++ forced measure/layout: w=${wvParentView.width} h=${wvParentView.height}")
+                        log("+++ child[0]: ${linearLayout.getChildAt(0)?.javaClass?.simpleName} h=${linearLayout.getChildAt(0)?.measuredHeight}")
+                        log("+++ child[1]: ${linearLayout.getChildAt(1)?.javaClass?.simpleName} h=${linearLayout.getChildAt(1)?.measuredHeight}")
                     }, 300)
                 }
 
