@@ -82,12 +82,11 @@ internal class BannerAdsHelper(
                 // if we have a parent of this element,
                 // we remove it from there and put it in the linerLayout
                 val rootView: ViewGroup? = if (wvParentView != null) {
+                    val originalLayoutParams = view.layoutParams
+                    log("+++ originalLayoutParams type: ${originalLayoutParams?.javaClass?.simpleName} w=${originalLayoutParams?.width} h=${originalLayoutParams?.height}")
                     wvParentView.removeView(view)
                     parentView.orientation = LinearLayout.VERTICAL
-                    parentView.layoutParams = LinearLayout.LayoutParams(
-                        ViewGroup.LayoutParams.MATCH_PARENT,
-                        ViewGroup.LayoutParams.MATCH_PARENT
-                    )
+                    parentView.layoutParams = originalLayoutParams
                     view.layoutParams = LinearLayout.LayoutParams(
                         ViewGroup.LayoutParams.MATCH_PARENT,
                         0, 1.0f  // height=0dp so weight=1.0f fills remaining space
@@ -97,10 +96,7 @@ internal class BannerAdsHelper(
                 } else {
                     view as? ViewGroup
                 }
-                rootView?.addView(parentView, ViewGroup.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.MATCH_PARENT
-                ))
+                rootView?.addView(parentView, parentView.layoutParams)
 
                 log("+++ parentView children count: ${parentView.childCount}")
                 log("+++ parentView layoutParams: w=${parentView.layoutParams?.width} h=${parentView.layoutParams?.height}")
