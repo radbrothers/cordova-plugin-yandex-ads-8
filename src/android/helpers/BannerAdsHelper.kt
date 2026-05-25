@@ -78,24 +78,18 @@ internal class BannerAdsHelper(
                 if (wvParentView != null) {
                     wvParentView.removeView(view)
 
-                    // wrap WebView in FrameLayout — LinearLayout controls the wrapper height via weight,
-                    // not the WebView directly (SystemWebView rejects LinearLayout.LayoutParams)
-                    val webViewWrapper = android.widget.FrameLayout(cordova.activity)
-                    webViewWrapper.addView(view, ViewGroup.LayoutParams(
-                        ViewGroup.LayoutParams.MATCH_PARENT,
-                        ViewGroup.LayoutParams.MATCH_PARENT
-                    ))
-
                     val linearLayout = LinearLayout(cordova.activity)
                     linearLayout.orientation = LinearLayout.VERTICAL
 
-                    val wrapperLp = LinearLayout.LayoutParams(
-                        ViewGroup.LayoutParams.MATCH_PARENT,
-                        0, 1.0f  // weight=1 on the wrapper, not on WebView
+                    val webViewParams = LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        0,
+                        1.0f
                     )
-                    val bannerLp = LinearLayout.LayoutParams(
-                        ViewGroup.LayoutParams.MATCH_PARENT,
-                        ViewGroup.LayoutParams.WRAP_CONTENT
+
+                    val bannerParams = LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT
                     )
 
                     bannerContainerLayout = RelativeLayout(cordova.activity)
@@ -108,14 +102,15 @@ internal class BannerAdsHelper(
                     bannerContainerLayout?.addView(mBannerAdView, adLayoutParams)
 
                     if (bannerAtTop) {
-                        linearLayout.addView(bannerContainerLayout, bannerLp)
-                        linearLayout.addView(webViewWrapper, wrapperLp)
+                        linearLayout.addView(bannerContainerLayout, bannerParams)
+                        linearLayout.addView(view, webViewParams)
                     } else {
-                        linearLayout.addView(webViewWrapper, wrapperLp)
-                        linearLayout.addView(bannerContainerLayout, bannerLp)
+                        linearLayout.addView(view, webViewParams)
+                        linearLayout.addView(bannerContainerLayout, bannerParams)
                     }
 
-                    wvParentView.addView(linearLayout)
+                    // bypass ContentFrameLayout entirely — set as Activity content directly
+                    cordova.activity.setContentView(linearLayout)
                 }
 
                 val contentView = cordova.activity.findViewById<ViewGroup>(R.id.content)
@@ -294,21 +289,13 @@ internal class BannerAdsHelper(
 
     private fun hideBannerView() {
         cordova.getActivity().runOnUiThread(Runnable {
-            val parentLayout = getParentLayout()
-
-            // if WebView was wrapped — unwrap it back to original parent
             val view = cordovaWebView.view
-            val wvWrapper = view.parent as? android.widget.FrameLayout
-            val linearLayout = wvWrapper?.parent as? LinearLayout
-            val originalParent = linearLayout?.parent as? ViewGroup
+            val linearLayout = view.parent as? LinearLayout
 
-            if (originalParent != null && wvWrapper != null && linearLayout != null) {
-                wvWrapper.removeView(view)
-                originalParent.removeView(linearLayout)
-                originalParent.addView(view, ViewGroup.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.MATCH_PARENT
-                ))
+            if (linearLayout != null) {
+                linearLayout.removeView(view)
+                // restore WebView as sole content of Activity
+                cordova.activity.setContentView(view)
             }
 
             bannerContainerLayout?.removeView(mBannerAdView)
