@@ -73,6 +73,7 @@ internal class BannerAdsHelper(
             } else {
                 val view = cordovaWebView.view
                 val wvParentView = view.parent as? ViewGroup
+                val parentView = LinearLayout(cordovaWebView.context)
 
                 val rootView: ViewGroup? = if (wvParentView != null) {
                     val originalLayoutParams = view.layoutParams
