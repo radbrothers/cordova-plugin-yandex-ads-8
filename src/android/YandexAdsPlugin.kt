@@ -4,8 +4,7 @@ import android.net.Uri
 import android.util.Log
 // import packagenamehere.R
 import com.yandex.mobile.ads.common.InitializationListener
-import com.yandex.mobile.ads.common.MobileAds.initialize
-import com.yandex.mobile.ads.common.MobileAds.setUserConsent
+import com.yandex.mobile.ads.common.YandexAds // FIXME_SDK8: Auto-generated during migration, please review.
 import io.luzh.cordova.plugin.helpers.BannerAdsHelper
 import io.luzh.cordova.plugin.helpers.FeedAdsHelper
 import io.luzh.cordova.plugin.helpers.InterstitialAdsHelper
@@ -139,14 +138,14 @@ class YandexAdsPlugin : CordovaPlugin() {
         feedAdsHelper = FeedAdsHelper(this, webView, feedBlockId)
 
 
-        initialize(
+        YandexAds.initialize( // FIXME_SDK8: Auto-generated during migration, please review.
             cordova.activity,
             InitializationListener { callbackContext.success() })
     }
 
 
     private fun setUserConsentAction(value: Boolean, callbackContext: CallbackContext) {
-        setUserConsent(value)
+        YandexAds.setUserConsent(value) // FIXME_SDK8: Auto-generated during migration, please review.
         Log.d(Constants.YANDEX_ADS_TAG, "setUserConsent: $value")
         callbackContext.success()
     }
