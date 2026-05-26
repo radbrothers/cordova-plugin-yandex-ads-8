@@ -136,9 +136,21 @@ internal class BannerAdsHelper(
                             view.forceLayout()
 
                             cordovaWebView.loadUrl(
-                                "javascript:setTimeout(function(){ window.dispatchEvent(new Event('resize')); }, 300);"
+                                "javascript:setTimeout(function(){" +
+                                "var meta = document.querySelector('meta[name=viewport]');" +
+                                "if(meta){" +
+                                "var content = meta.getAttribute('content');" +
+                                "meta.setAttribute('content', content + ',maximum-scale=1.0');" +
+                                "setTimeout(function(){ meta.setAttribute('content', content); }, 50);" +
+                                "} else {" +
+                                "var m = document.createElement('meta');" +
+                                "m.name='viewport';" +
+                                "m.content='width=device-width,initial-scale=1.0';" +
+                                "document.head.appendChild(m);" +
+                                "}" +
+                                "}, 300);"
                             )
-                            log("+++ window resize event scheduled in 300ms")
+                            log("+++ viewport meta refresh scheduled in 300ms")
                         }
                     }
                 }
