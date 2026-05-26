@@ -280,12 +280,17 @@ internal class BannerAdsHelper(
                 // overlap mode — just remove bannerContainerLayout from parent
                 (bannerContainerLayout?.parent as? ViewGroup)?.removeView(bannerContainerLayout)
             } else {
-                // push mode — restore WebView as sole content
+                // push mode — restore WebView back to its original parent (ContentFrameLayout)
                 val view = cordovaWebView.view
                 val linearLayout = view.parent as? LinearLayout
                 if (linearLayout != null) {
+                    val originalParent = linearLayout.parent as? ViewGroup
                     linearLayout.removeView(view)
-                    cordova.activity.setContentView(view)
+                    originalParent?.removeView(linearLayout)
+                    originalParent?.addView(view, ViewGroup.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.MATCH_PARENT
+                    ))
                 }
             }
 
