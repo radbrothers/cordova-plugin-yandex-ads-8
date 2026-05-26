@@ -74,9 +74,7 @@ let YandexAds = (function () {
                 {
                     throw new Error('YandexAds::init - rewardedBlockId or interstitialBlockId or bannerBlockId is required');
                 }
-                // options.bannerPosition: 'top' | 'bottom' | 'left' | 'right' (default: 'bottom')
-                // options.bannerSize: { width: number, height: number } — required
-                // options.overlap: true = banner overlays WebView, false = banner pushes WebView (default: false)
+                // Banner options (bannerPosition, bannerSize, overlap) are passed to loadBanner(), not here
 
                 callPlugin(
              'run',
@@ -186,14 +184,17 @@ let YandexAds = (function () {
         },
 
         /**
-         * Loads interstitial
+         * Loads banner ad
+         * @param {Object} params.bannerPosition - 'top' | 'bottom' | 'left' | 'right' (default: 'bottom')
+         * @param {Object} params.bannerSize - { width: number, height: number } — required
+         * @param {boolean} params.overlap - true = overlay WebView, false = push WebView (default: false)
          */
         loadBanner: async function loadBanner(params)
         {
             return new Promise((resolve, reject) => {
                 params = defaults(params, {});
 
-                callPlugin('loadBanner', [], resolve, reject);
+                callPlugin('loadBanner', [params], resolve, reject);
             });
         },
 
