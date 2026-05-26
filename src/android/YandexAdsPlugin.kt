@@ -12,9 +12,6 @@ import io.luzh.cordova.plugin.helpers.OpenAppAdsHelper
 import io.luzh.cordova.plugin.helpers.RewardedAdsHelper
 // import io.luzh.cordova.plugin.helpers.instream.InstreamAdsHelper
 import io.luzh.cordova.plugin.utils.Constants
-import io.luzh.cordova.plugin.utils.Constants.KEY_BANNER_POSITION
-import io.luzh.cordova.plugin.utils.Constants.KEY_BANNER_SIZE
-import io.luzh.cordova.plugin.utils.Constants.KEY_BANNER_OVERLAP
 import io.luzh.cordova.plugin.utils.Constants.KEY_BLOCK_ID_BANNER
 import io.luzh.cordova.plugin.utils.Constants.KEY_BLOCK_ID_FEED
 import io.luzh.cordova.plugin.utils.Constants.KEY_BLOCK_ID_INSTREAM
@@ -74,7 +71,7 @@ class YandexAdsPlugin : CordovaPlugin() {
             ACTION_SHOW_REWARDED_VIDEO -> { rewardedAdsHelper?.show(callbackContext); true }
 
             // Banner ads
-            ACTION_LOAD_BANNER -> { bannerAdsHelper?.load(callbackContext); true }
+            ACTION_LOAD_BANNER -> { bannerAdsHelper?.load(args, callbackContext); true }
             ACTION_SHOW_BANNER -> { bannerAdsHelper?.show(callbackContext); true }
             ACTION_HIDE_BANNER -> { bannerAdsHelper?.hide(callbackContext); true }
             ACTION_RELOAD_BANNER -> { bannerAdsHelper?.reload(callbackContext); true }
@@ -126,7 +123,7 @@ class YandexAdsPlugin : CordovaPlugin() {
 
         // val intreamContentUrl = Uri.parse("android.resource://" + cordova.context.packageName + "/" + R.raw.jc).toString()
 
-        bannerAdsHelper = BannerAdsHelper(this, webView, bannerBlockId, bannerPosition, bannerSize, bannerOverlap)
+        bannerAdsHelper = BannerAdsHelper(this, webView, bannerBlockId)
         rewardedAdsHelper = RewardedAdsHelper(this, webView, rewardedBlockId)
         interstitialAdsHelper = InterstitialAdsHelper(this, webView, interstitialBlockId)
         openAppAdsHelper = OpenAppAdsHelper(this, webView, openAppBlockId)
