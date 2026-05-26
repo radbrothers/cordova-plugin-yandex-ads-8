@@ -123,6 +123,17 @@ internal class BannerAdsHelper(
                         log("+++ post: linearLayout w=${linearLayout.width} h=${linearLayout.height}")
                         log("+++ post: view w=${view.width} h=${view.height}")
                         log("+++ post: bannerContainer w=${bannerContainerLayout?.width} h=${bannerContainerLayout?.height}")
+                        val bannerH = bannerContainerLayout?.height ?: 0
+                        val totalH = linearLayout.height
+                        if (bannerH > 0 && totalH > 0) {
+                            val webViewH = totalH - bannerH
+                            if (bannerAtTop) {
+                                view.layout(0, bannerH, linearLayout.width, bannerH + webViewH)
+                            } else {
+                                view.layout(0, 0, linearLayout.width, webViewH)
+                            }
+                            log("+++ forced view.layout: webViewH=$webViewH")
+                        }
                     }
                 }
 
