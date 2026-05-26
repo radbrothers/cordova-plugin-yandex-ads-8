@@ -113,7 +113,6 @@ internal class BannerAdsHelper(
 
                     cordova.activity.setContentView(linearLayout)
 
-                    // trigger WebView viewport recalculation via instant fullscreen toggle
                     linearLayout.post {
                         cordovaWebView.loadUrl(
                             "javascript:setTimeout(function(){" +
@@ -121,11 +120,26 @@ internal class BannerAdsHelper(
                             "var req = el.requestFullscreen || el.webkitRequestFullscreen;" +
                             "var exit = document.exitFullscreen || document.webkitExitFullscreen;" +
                             "if(req && exit){" +
-                            "req.call(el).then(function(){ exit.call(document); })" +
-                            ".catch(function(e){ console.log('fs error: ' + e); });" +
+                            "document.addEventListener('fullscreenchange', function onFsChange(){" +
+                            "if(!document.fullscreenElement){" +
+                            "document.removeEventListener('fullscreenchange', onFsChange);" +
+                            "cordova.fireWindowEvent('bannerFullscreenExit');" +
+                            "}" +
+                            "});" +
+                            "req.call(el).catch(function(e){ console.log('fs error: ' + e); });" +
                             "}" +
                             "}, 300);"
                         )
+
+                        // hide banner before fullscreen
+                        bannerContainerLayout?.visibility = android.view.View.INVISIBLE
+
+                        // listen for exit fullscreen to restore banner
+                        cordovaWebView.view.post {
+                            android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                                bannerContainerLayout?.visibility = android.view.View.VISIBLE
+                            }, 800)
+                        }
                     }
                 }
             }
