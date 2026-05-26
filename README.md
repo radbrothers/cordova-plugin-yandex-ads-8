@@ -2,7 +2,6 @@
 [![NPM Downloads](https://img.shields.io/npm/dt/cordova-plugin-yandex-ads)](https://www.npmjs.com/package/cordova-plugin-yandex-ads) [![NPM Version](https://img.shields.io/npm/v/cordova-plugin-yandex-ads)](https://www.npmjs.com/package/cordova-plugin-yandex-ads)
 
 --------
-## Support plugin [https://boosty.to/maximnara](https://boosty.to/maximnara)
 
 ### [Demo Video](https://youtube.com/watch?v=GN_R5Am5hbI)
 
@@ -72,11 +71,6 @@ await YandexAds.init({
   openAppBlockId: 'YOUR_OPEN_APP_ADS_ID',
   instreamBlockId: 'YOUR_INSTREAM_ID',
   feedBlockId: 'YOUR_FEED_ID',
-  options: { // This is for banner ads
-    bannerPosition: 'bottom', // 'top' | 'bottom' | 'left' | 'right'
-    bannerSize: { width: 468, height: 100 }, // Your banner size
-    // You can skip bannerSize option and width will be as big as possible
-  },
 });
 ```
 
@@ -151,7 +145,11 @@ YandexAds.showOpenAppAds();
 Must be called before `showBanner`
 
 ```javascript
-YandexAds.loadBanner();
+YandexAds.loadBanner({
+    bannerPosition: 'bottom', // 'top' | 'bottom' | 'left' | 'right'
+    bannerSize: { width: 360, height: 100 }, // Your banner size
+    overlap: false, // true | false
+  });
 ```
 ***
 #### Show Banner
