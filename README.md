@@ -46,7 +46,6 @@ npm i cordova-plugin-yandex-ads --save
 - [Banners](#banners)
   - [Load Banner](#load-banner)
   - [Show Banner](#show-banner)
-  - [Reload Banner](#reload-banner)
   - [Banner Events](#banner-events)
 - [Instream](#instream)
   - [Load Instream](#load-instream)
