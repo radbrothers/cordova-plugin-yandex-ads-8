@@ -73,7 +73,7 @@ await YandexAds.init({
   instreamBlockId: 'YOUR_INSTREAM_ID',
   feedBlockId: 'YOUR_FEED_ID',
   options: { // This is for banner ads
-    bannerAtTop: true, // Show banner on top of screen, otherwise on bottom
+    bannerPosition: 'bottom', // 'top' | 'bottom' | 'left' | 'right'
     bannerSize: { width: 468, height: 100 }, // Your banner size
     // You can skip bannerSize option and width will be as big as possible
   },
