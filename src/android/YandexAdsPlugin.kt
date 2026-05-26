@@ -26,7 +26,6 @@ import io.luzh.cordova.plugin.utils.ConstantsActions.ACTION_LOAD_FEED_APP_ADS
 import io.luzh.cordova.plugin.utils.ConstantsActions.ACTION_LOAD_INSTREAM_APP_ADS
 import io.luzh.cordova.plugin.utils.ConstantsActions.ACTION_LOAD_INTERSTITIAL
 import io.luzh.cordova.plugin.utils.ConstantsActions.ACTION_LOAD_OPEN_APP_ADS
-import io.luzh.cordova.plugin.utils.ConstantsActions.ACTION_RELOAD_BANNER
 import io.luzh.cordova.plugin.utils.ConstantsActions.ACTION_RUN
 import io.luzh.cordova.plugin.utils.ConstantsActions.ACTION_SET_USER_CONSENT
 import io.luzh.cordova.plugin.utils.ConstantsActions.ACTION_SHOW_BANNER
@@ -72,7 +71,6 @@ class YandexAdsPlugin : CordovaPlugin() {
             ACTION_LOAD_BANNER -> { bannerAdsHelper?.load(args, callbackContext); true }
             ACTION_SHOW_BANNER -> { bannerAdsHelper?.show(callbackContext); true }
             ACTION_HIDE_BANNER -> { bannerAdsHelper?.hide(callbackContext); true }
-            ACTION_RELOAD_BANNER -> { bannerAdsHelper?.reload(callbackContext); true }
 
             // Interstitial ads
             ACTION_LOAD_INTERSTITIAL -> { interstitialAdsHelper?.load(callbackContext); true }
