@@ -18,7 +18,6 @@ import io.luzh.cordova.plugin.utils.Constants.KEY_BLOCK_ID_INSTREAM
 import io.luzh.cordova.plugin.utils.Constants.KEY_BLOCK_ID_INTERSTITIAL
 import io.luzh.cordova.plugin.utils.Constants.KEY_BLOCK_ID_OPEN_APP
 import io.luzh.cordova.plugin.utils.Constants.KEY_BLOCK_ID_REWARDED
-import io.luzh.cordova.plugin.utils.Constants.KEY_OPTIONS
 import io.luzh.cordova.plugin.utils.ConstantsActions.ACTION_HIDE_BANNER
 import io.luzh.cordova.plugin.utils.ConstantsActions.ACTION_HIDE_FEED_APP_ADS
 import io.luzh.cordova.plugin.utils.ConstantsActions.ACTION_HIDE_INSTREAM_APP_ADS
@@ -43,7 +42,6 @@ import org.apache.cordova.CordovaPlugin
 import org.apache.cordova.CordovaWebView
 import org.json.JSONArray
 import org.json.JSONException
-import org.json.JSONObject
 
 class YandexAdsPlugin : CordovaPlugin() {
     private var cordovaWebView: CordovaWebView? = null
@@ -115,11 +113,6 @@ class YandexAdsPlugin : CordovaPlugin() {
         val openAppBlockId: String = args.getString(KEY_BLOCK_ID_OPEN_APP)
         // val instreamBlockId: String = args.getString(KEY_BLOCK_ID_INSTREAM)
         val feedBlockId: String = args.getString(KEY_BLOCK_ID_FEED)
-        val options = args.optJSONObject(KEY_OPTIONS)
-
-        val bannerPosition = options.optString(KEY_BANNER_POSITION, "bottom")
-        val bannerSize = options.optJSONObject(KEY_BANNER_SIZE) ?: JSONObject()
-        val bannerOverlap = options.optBoolean(KEY_BANNER_OVERLAP, false)
 
         // val intreamContentUrl = Uri.parse("android.resource://" + cordova.context.packageName + "/" + R.raw.jc).toString()
 
