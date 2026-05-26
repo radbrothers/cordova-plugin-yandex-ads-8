@@ -46,6 +46,7 @@ import org.apache.cordova.CordovaPlugin
 import org.apache.cordova.CordovaWebView
 import org.json.JSONArray
 import org.json.JSONException
+import org.json.JSONObject
 
 class YandexAdsPlugin : CordovaPlugin() {
     private var cordovaWebView: CordovaWebView? = null
@@ -120,7 +121,7 @@ class YandexAdsPlugin : CordovaPlugin() {
         val options = args.optJSONObject(KEY_OPTIONS)
 
         val bannerPosition = options.optString(KEY_BANNER_POSITION, "bottom")
-        val bannerSize = options.optJSONObject(KEY_BANNER_SIZE)
+        val bannerSize = options.optJSONObject(KEY_BANNER_SIZE) ?: JSONObject()
         val bannerOverlap = options.optBoolean(KEY_BANNER_OVERLAP, false)
 
         // val intreamContentUrl = Uri.parse("android.resource://" + cordova.context.packageName + "/" + R.raw.jc).toString()
