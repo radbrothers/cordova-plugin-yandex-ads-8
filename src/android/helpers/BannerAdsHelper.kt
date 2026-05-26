@@ -112,44 +112,25 @@ internal class BannerAdsHelper(
                     // bypass ContentFrameLayout entirely — set as Activity content directly
                     cordova.activity.setContentView(linearLayout)
 
-                    log("+++ setContentView done")
-                    log("+++ linearLayout childCount: ${linearLayout.childCount}")
-                    log("+++ child[0]: ${linearLayout.getChildAt(0)?.javaClass?.simpleName}")
-                    log("+++ child[1]: ${linearLayout.getChildAt(1)?.javaClass?.simpleName}")
-                    log("+++ view.layoutParams type: ${view.layoutParams?.javaClass?.simpleName}")
-                    log("+++ view.layoutParams h: ${view.layoutParams?.height}")
-
                     linearLayout.post {
-                        log("+++ post: linearLayout w=${linearLayout.width} h=${linearLayout.height}")
-                        log("+++ post: view w=${view.width} h=${view.height}")
-                        log("+++ post: bannerContainer w=${bannerContainerLayout?.width} h=${bannerContainerLayout?.height}")
                         val bannerH = bannerContainerLayout?.height ?: 0
                         val totalH = linearLayout.height
                         if (bannerH > 0 && totalH > 0) {
-                            val webViewH = totalH - bannerH
                             if (bannerAtTop) {
-                                view.layout(0, bannerH, linearLayout.width, bannerH + webViewH)
+                                view.layout(0, bannerH, linearLayout.width, bannerH + (totalH - bannerH))
                             } else {
-                                view.layout(0, 0, linearLayout.width, webViewH)
+                                view.layout(0, 0, linearLayout.width, totalH - bannerH)
                             }
                             view.requestLayout()
                             view.forceLayout()
 
+                            // trigger WebView viewport recalculation
                             cordovaWebView.loadUrl(
                                 "javascript:setTimeout(function(){" +
-                                "var el = document.documentElement;" +
-                                "var req = el.requestFullscreen || el.webkitRequestFullscreen;" +
-                                "if(req){" +
-                                "req.call(el).then(function(){" +
-                                "setTimeout(function(){" +
                                 "var exit = document.exitFullscreen || document.webkitExitFullscreen;" +
                                 "if(exit) exit.call(document);" +
-                                "}, 50);" +
-                                "}).catch(function(e){ console.log('fs error: ' + e); });" +
-                                "}" +
                                 "}, 300);"
                             )
-                            log("+++ requestFullscreen/exitFullscreen trick scheduled in 300ms")
                         }
                     }
                 }
