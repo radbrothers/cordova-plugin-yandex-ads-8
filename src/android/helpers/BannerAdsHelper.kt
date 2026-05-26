@@ -58,7 +58,16 @@ internal class BannerAdsHelper(
 
             bannerShown = true
 
-            bannerContainerLayout = RelativeLayout(cordova.activity)
+            bannerContainerLayout = object : RelativeLayout(cordova.activity) {
+                override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
+                    // always report fixed size regardless of children
+                    measureChildren(
+                        MeasureSpec.makeMeasureSpec(containerW, MeasureSpec.EXACTLY),
+                        MeasureSpec.makeMeasureSpec(containerH, MeasureSpec.EXACTLY)
+                    )
+                    setMeasuredDimension(containerW, containerH)
+                }
+            }
             bannerContainerLayout?.setBackgroundColor(0xFF000000.toInt())
             val adLayoutParams = RelativeLayout.LayoutParams(containerW, containerH)
             adLayoutParams.addRule(RelativeLayout.CENTER_IN_PARENT)
@@ -199,18 +208,6 @@ internal class BannerAdsHelper(
 
                 override fun onAdFailedToLoad(error: AdRequestError) {
                     emitWindowEvent(ConstantsEvents.EVENT_BANNER_FAILED_TO_LOAD, error.description)
-                    // keep container size stable on empty ad response
-                    cordova.activity.runOnUiThread {
-                        bannerContainerLayout?.let { container ->
-                            val lp = container.layoutParams
-                            if (lp != null && (lp.width != containerW || lp.height != containerH)) {
-                                lp.width = containerW
-                                lp.height = containerH
-                                container.layoutParams = lp
-                                container.requestLayout()
-                            }
-                        }
-                    }
                 }
 
                 override fun onAdClicked() {
