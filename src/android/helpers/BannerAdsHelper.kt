@@ -61,11 +61,10 @@ internal class BannerAdsHelper(
 
             bannerContainerLayout = RelativeLayout(cordova.activity)
             bannerContainerLayout?.setBackgroundColor(0xFF000000.toInt())
+            // fix container size so it never collapses on empty ad response
+            bannerContainerLayout?.minimumWidth = containerW
             bannerContainerLayout?.minimumHeight = containerH
-            val adLayoutParams = RelativeLayout.LayoutParams(
-                RelativeLayout.LayoutParams.WRAP_CONTENT,
-                RelativeLayout.LayoutParams.WRAP_CONTENT
-            )
+            val adLayoutParams = RelativeLayout.LayoutParams(containerW, containerH)
             adLayoutParams.addRule(RelativeLayout.CENTER_IN_PARENT)
             bannerContainerLayout?.addView(mBannerAdView, adLayoutParams)
 
