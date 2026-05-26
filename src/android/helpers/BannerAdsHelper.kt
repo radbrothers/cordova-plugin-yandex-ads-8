@@ -1,10 +1,7 @@
 package io.luzh.cordova.plugin.helpers
 
 import android.R
-import android.view.Gravity
-import android.view.View
 import android.view.ViewGroup
-import android.view.ViewTreeObserver.OnGlobalLayoutListener
 import android.widget.LinearLayout
 import android.widget.RelativeLayout
 import androidx.core.view.contains
@@ -72,6 +69,7 @@ internal class BannerAdsHelper(
                 bannerParrentLayout?.addView(mBannerAdView, bannerLayoutParams)
                 bannerParrentLayout?.bringToFront()
             } else {
+                // inline banner — setContentView with LinearLayout to bypass ContentFrameLayout
                 val view = cordovaWebView.view
                 val wvParentView = view.parent as? ViewGroup
 
@@ -87,16 +85,17 @@ internal class BannerAdsHelper(
                         1.0f
                     )
 
-                    val bannerParams = LinearLayout.LayoutParams(
-                        LinearLayout.LayoutParams.MATCH_PARENT,
-                        LinearLayout.LayoutParams.WRAP_CONTENT
-                    )
+                    // fix container size to match requested bannerSize (dp → px)
+                    val density = cordova.activity.resources.displayMetrics.density
+                    val containerW = (bannerSize.optInt("width") * density).toInt()
+                    val containerH = (bannerSize.optInt("height") * density).toInt()
+                    val bannerParams = LinearLayout.LayoutParams(containerW, containerH)
 
                     bannerContainerLayout = RelativeLayout(cordova.activity)
                     bannerContainerLayout?.setBackgroundColor(0x000000)
                     val adLayoutParams = RelativeLayout.LayoutParams(
-                        RelativeLayout.LayoutParams.WRAP_CONTENT,
-                        RelativeLayout.LayoutParams.WRAP_CONTENT
+                        RelativeLayout.LayoutParams.MATCH_PARENT,
+                        RelativeLayout.LayoutParams.MATCH_PARENT
                     )
                     adLayoutParams.addRule(RelativeLayout.CENTER_HORIZONTAL)
                     bannerContainerLayout?.addView(mBannerAdView, adLayoutParams)
@@ -109,37 +108,23 @@ internal class BannerAdsHelper(
                         linearLayout.addView(bannerContainerLayout, bannerParams)
                     }
 
-                    // bypass ContentFrameLayout entirely — set as Activity content directly
                     cordova.activity.setContentView(linearLayout)
 
+                    // trigger WebView viewport recalculation via instant fullscreen toggle
                     linearLayout.post {
-                        val bannerH = bannerContainerLayout?.height ?: 0
-                        val totalH = linearLayout.height
-                        if (bannerH > 0 && totalH > 0) {
-                            if (bannerAtTop) {
-                                view.layout(0, bannerH, linearLayout.width, bannerH + (totalH - bannerH))
-                            } else {
-                                view.layout(0, 0, linearLayout.width, totalH - bannerH)
-                            }
-                            view.requestLayout()
-                            view.forceLayout()
-
-                            // trigger WebView viewport recalculation via instant fullscreen toggle
-                            cordovaWebView.loadUrl(
-                                "javascript:setTimeout(function(){" +
-                                "var el = document.documentElement;" +
-                                "var req = el.requestFullscreen || el.webkitRequestFullscreen;" +
-                                "var exit = document.exitFullscreen || document.webkitExitFullscreen;" +
-                                "if(req && exit){" +
-                                "req.call(el).then(function(){ exit.call(document); })" +
-                                ".catch(function(e){ console.log('fs error: ' + e); });" +
-                                "}" +
-                                "}, 300);"
-                            )
-                        }
+                        cordovaWebView.loadUrl(
+                            "javascript:setTimeout(function(){" +
+                            "var el = document.documentElement;" +
+                            "var req = el.requestFullscreen || el.webkitRequestFullscreen;" +
+                            "var exit = document.exitFullscreen || document.webkitExitFullscreen;" +
+                            "if(req && exit){" +
+                            "req.call(el).then(function(){ exit.call(document); })" +
+                            ".catch(function(e){ console.log('fs error: ' + e); });" +
+                            "}" +
+                            "}, 300);"
+                        )
                     }
                 }
-
             }
 
             callbackContext.success()
@@ -151,7 +136,6 @@ internal class BannerAdsHelper(
             hideBannerView()
             mBannerAdView = BannerAdView(cordova.activity)
 
-            // determine the size of the advertising banner
             val adSize =
                 if (bannerSize != null && bannerSize.has("width") && bannerSize.has("height")) {
                     BannerAdSize.inline( // FIXME_SDK8: Auto-generated during migration, please review.
@@ -164,9 +148,7 @@ internal class BannerAdsHelper(
                     BannerAdSize.sticky(cordova.context, adWidth) // FIXME_SDK8: Auto-generated during migration, please review.
                 }
 
-            // set the banner size
             mBannerAdView?.setAdSize(adSize)
-
             bannerShown = false
 
             val adRequest: AdRequest = AdRequest.Builder(blockId).build() // FIXME_SDK8: Auto-generated during migration, please review.
@@ -209,23 +191,19 @@ internal class BannerAdsHelper(
         cordova.activity.runOnUiThread {
             if (mBannerAdView != null && bannerShown) {
                 if (getParentLayout() != null && bannerContainerLayout != null) {
-
-                    (mBannerAdView?.parent as? ViewGroup)?.let {
-                        it.removeView(mBannerAdView)
-                    }
+                    (mBannerAdView?.parent as? ViewGroup)?.removeView(mBannerAdView)
 
                     if (bannerParrentLayout != null) {
                         mBannerAdView?.let {
-                            if(bannerParrentLayout?.contains(it) == true){
+                            if (bannerParrentLayout?.contains(it) == true) {
                                 bannerParrentLayout?.removeView(it)
                             }
                         }
                     }
-
-                    log("+++ AFTER REMOVE " + bannerContainerLayout?.childCount)
                 }
                 destroyBanner()
             }
+
             mBannerAdView = BannerAdView(cordovaPlugin.cordova.activity)
 
             val adSize =
@@ -240,8 +218,7 @@ internal class BannerAdsHelper(
                     BannerAdSize.sticky(cordovaPlugin.cordova.context, adWidth) // FIXME_SDK8: Auto-generated during migration, please review.
                 }
 
-            mBannerAdView?.let { it.setAdSize(adSize) }
-
+            mBannerAdView?.setAdSize(adSize)
             bannerShown = false
 
             val adRequest: AdRequest = AdRequest.Builder(blockId).build() // FIXME_SDK8: Auto-generated during migration, please review.
@@ -249,7 +226,7 @@ internal class BannerAdsHelper(
             mBannerAdView?.setBannerAdEventListener(object : BannerAdEventListener {
                 override fun onAdLoaded() {
                     bannerLoaded = true
-                    log(ConstantsEvents.EVENT_BANNER_DID_LOAD)
+                    emitWindowEvent(ConstantsEvents.EVENT_BANNER_DID_LOAD)
 
                     if (bannerSize == null) {
                         val alignRule = if (bannerAtTop) RelativeLayout.ALIGN_PARENT_TOP
@@ -267,11 +244,8 @@ internal class BannerAdsHelper(
                             RelativeLayout.LayoutParams.WRAP_CONTENT,
                             RelativeLayout.LayoutParams.WRAP_CONTENT
                         )
-
                         layoutParams.addRule(RelativeLayout.CENTER_HORIZONTAL)
-
                         bannerContainerLayout?.addView(mBannerAdView, layoutParams)
-
                         mBannerAdView?.layoutParams = layoutParams
                     }
 
@@ -291,18 +265,6 @@ internal class BannerAdsHelper(
                 }
             })
 
-            bannerContainerLayout?.viewTreeObserver?.addOnGlobalLayoutListener(object : OnGlobalLayoutListener {
-                override fun onGlobalLayout() {
-                    mBannerAdView?.viewTreeObserver?.removeOnGlobalLayoutListener(
-                        this
-                    )
-
-                    mBannerAdView?.measuredHeight?.let {
-                        bannerContainerLayout?.minimumHeight = it
-                    }
-                }
-            })
-
             mBannerAdView?.loadAd(adRequest)
             callbackContext.success()
         }
@@ -315,7 +277,6 @@ internal class BannerAdsHelper(
 
             if (linearLayout != null) {
                 linearLayout.removeView(view)
-                // restore WebView as sole content of Activity
                 cordova.activity.setContentView(view)
             }
 
