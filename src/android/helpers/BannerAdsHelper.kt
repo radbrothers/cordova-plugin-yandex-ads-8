@@ -136,9 +136,9 @@ internal class BannerAdsHelper(
                             view.forceLayout()
 
                             cordovaWebView.loadUrl(
-                                "javascript:window.dispatchEvent(new Event('resize'));"
+                                "javascript:setTimeout(function(){ window.dispatchEvent(new Event('resize')); }, 300);"
                             )
-                            log("+++ window resize event fired")
+                            log("+++ window resize event scheduled in 300ms")
                         }
                     }
                 }
