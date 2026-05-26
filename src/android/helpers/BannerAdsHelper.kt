@@ -140,7 +140,12 @@ internal class BannerAdsHelper(
 
         // overlay bannerContainerLayout in ContentFrameLayout on top of spacer
         linearLayout.post {
+            log("+++ spacer w=${spacer.width} h=${spacer.height} lp.w=${spacer.layoutParams?.width} lp.h=${spacer.layoutParams?.height}")
+            log("+++ linearLayout w=${linearLayout.width} h=${linearLayout.height}")
+            log("+++ linearLayout childCount=${linearLayout.childCount}")
+
             val contentFrameLayout = linearLayout.parent as? ViewGroup ?: return@post
+            log("+++ contentFrameLayout type=${contentFrameLayout.javaClass.simpleName}")
 
             val gravity = when (bannerPosition) {
                 BANNER_POSITION_TOP -> Gravity.TOP or Gravity.CENTER_HORIZONTAL
@@ -203,6 +208,11 @@ internal class BannerAdsHelper(
 
                 override fun onAdFailedToLoad(error: AdRequestError) {
                     emitWindowEvent(ConstantsEvents.EVENT_BANNER_FAILED_TO_LOAD, error.description)
+                    cordova.activity.runOnUiThread {
+                        log("+++ onAdFailedToLoad: bannerContainer w=${bannerContainerLayout?.width} h=${bannerContainerLayout?.height}")
+                        log("+++ onAdFailedToLoad: bannerContainer lp.w=${bannerContainerLayout?.layoutParams?.width} lp.h=${bannerContainerLayout?.layoutParams?.height}")
+                        log("+++ onAdFailedToLoad: bannerContainer parent=${bannerContainerLayout?.parent?.javaClass?.simpleName}")
+                    }
                 }
 
                 override fun onAdClicked() {
