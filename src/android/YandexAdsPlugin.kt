@@ -12,11 +12,9 @@ import io.luzh.cordova.plugin.helpers.OpenAppAdsHelper
 import io.luzh.cordova.plugin.helpers.RewardedAdsHelper
 // import io.luzh.cordova.plugin.helpers.instream.InstreamAdsHelper
 import io.luzh.cordova.plugin.utils.Constants
-import io.luzh.cordova.plugin.utils.Constants.KEY_BANNER_AT_TOP
 import io.luzh.cordova.plugin.utils.Constants.KEY_BANNER_POSITION
 import io.luzh.cordova.plugin.utils.Constants.KEY_BANNER_SIZE
-import io.luzh.cordova.plugin.utils.Constants.BANNER_POSITION_TOP
-import io.luzh.cordova.plugin.utils.Constants.BANNER_POSITION_BOTTOM
+import io.luzh.cordova.plugin.utils.Constants.KEY_BANNER_OVERLAP
 import io.luzh.cordova.plugin.utils.Constants.KEY_BLOCK_ID_BANNER
 import io.luzh.cordova.plugin.utils.Constants.KEY_BLOCK_ID_FEED
 import io.luzh.cordova.plugin.utils.Constants.KEY_BLOCK_ID_INSTREAM
@@ -121,16 +119,13 @@ class YandexAdsPlugin : CordovaPlugin() {
         val feedBlockId: String = args.getString(KEY_BLOCK_ID_FEED)
         val options = args.optJSONObject(KEY_OPTIONS)
 
-        // support both new bannerPosition and legacy bannerAtTop
-        val bannerPosition = options.optString(KEY_BANNER_POSITION, "").ifEmpty {
-            if (options.optBoolean(KEY_BANNER_AT_TOP, false)) BANNER_POSITION_TOP
-            else BANNER_POSITION_BOTTOM
-        }
+        val bannerPosition = options.optString(KEY_BANNER_POSITION, "bottom")
         val bannerSize = options.optJSONObject(KEY_BANNER_SIZE)
+        val bannerOverlap = options.optBoolean(KEY_BANNER_OVERLAP, false)
 
         // val intreamContentUrl = Uri.parse("android.resource://" + cordova.context.packageName + "/" + R.raw.jc).toString()
 
-        bannerAdsHelper = BannerAdsHelper(this, webView, bannerBlockId, bannerPosition, bannerSize)
+        bannerAdsHelper = BannerAdsHelper(this, webView, bannerBlockId, bannerPosition, bannerSize, bannerOverlap)
         rewardedAdsHelper = RewardedAdsHelper(this, webView, rewardedBlockId)
         interstitialAdsHelper = InterstitialAdsHelper(this, webView, interstitialBlockId)
         openAppAdsHelper = OpenAppAdsHelper(this, webView, openAppBlockId)
