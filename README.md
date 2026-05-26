@@ -158,15 +158,6 @@ YandexAds.loadBanner({
 YandexAds.showBanner();
 ```
 ***
-#### Reload Banner
-If you set banner size your banner will render in container, that will move content container (web view).
-
-So calling `loadBanner` will lead to web view jumps. To fix that use `reloadBanner` method that will save container for banner. 
-So while banner loading empty container avoid web view jumps.    
-```javascript
-YandexAds.reloadBanner();
-```
-***
 #### Hide Banner
 
 ```javascript
