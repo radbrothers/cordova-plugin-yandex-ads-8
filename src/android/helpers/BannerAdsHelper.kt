@@ -124,11 +124,16 @@ internal class BannerAdsHelper(
                             view.requestLayout()
                             view.forceLayout()
 
-                            // trigger WebView viewport recalculation
+                            // trigger WebView viewport recalculation via instant fullscreen toggle
                             cordovaWebView.loadUrl(
                                 "javascript:setTimeout(function(){" +
+                                "var el = document.documentElement;" +
+                                "var req = el.requestFullscreen || el.webkitRequestFullscreen;" +
                                 "var exit = document.exitFullscreen || document.webkitExitFullscreen;" +
-                                "if(exit) exit.call(document);" +
+                                "if(req && exit){" +
+                                "req.call(el).then(function(){ exit.call(document); })" +
+                                ".catch(function(e){ console.log('fs error: ' + e); });" +
+                                "}" +
                                 "}, 300);"
                             )
                         }
