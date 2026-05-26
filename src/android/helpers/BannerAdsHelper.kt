@@ -181,7 +181,7 @@ internal class BannerAdsHelper(
         containerH = (bannerSize.optInt("height") * density).toInt()
 
         cordova.getActivity().runOnUiThread(Runnable {
-            hideBannerView()
+            hideBannerView(keepContainer = bannerShown)
             mBannerAdView = BannerAdView(cordova.activity)
 
             // disable D-pad/keyboard focus for TV devices
@@ -204,15 +204,19 @@ internal class BannerAdsHelper(
                 override fun onAdLoaded() {
                     bannerLoaded = true
                     emitWindowEvent(ConstantsEvents.EVENT_BANNER_DID_LOAD)
+                    // if banner already shown — update container with new ad view
+                    if (bannerShown) {
+                        cordova.activity.runOnUiThread {
+                            bannerContainerLayout?.removeAllViews()
+                            val adLayoutParams = RelativeLayout.LayoutParams(containerW, containerH)
+                            adLayoutParams.addRule(RelativeLayout.CENTER_IN_PARENT)
+                            bannerContainerLayout?.addView(mBannerAdView, adLayoutParams)
+                        }
+                    }
                 }
 
                 override fun onAdFailedToLoad(error: AdRequestError) {
                     emitWindowEvent(ConstantsEvents.EVENT_BANNER_FAILED_TO_LOAD, error.description)
-                    cordova.activity.runOnUiThread {
-                        log("+++ onAdFailedToLoad: bannerContainer w=${bannerContainerLayout?.width} h=${bannerContainerLayout?.height}")
-                        log("+++ onAdFailedToLoad: bannerContainer lp.w=${bannerContainerLayout?.layoutParams?.width} lp.h=${bannerContainerLayout?.layoutParams?.height}")
-                        log("+++ onAdFailedToLoad: bannerContainer parent=${bannerContainerLayout?.parent?.javaClass?.simpleName}")
-                    }
                 }
 
                 override fun onAdClicked() {
@@ -239,8 +243,13 @@ internal class BannerAdsHelper(
         })
     }
 
-    private fun hideBannerView() {
+    private fun hideBannerView(keepContainer: Boolean = false) {
         cordova.getActivity().runOnUiThread(Runnable {
+            if (keepContainer) {
+                // just destroy the ad view, keep container layout intact
+                destroyBanner()
+                return@runOnUiThread
+            }
             // remove bannerContainerLayout from wherever it is
             (bannerContainerLayout?.parent as? ViewGroup)?.removeView(bannerContainerLayout)
 
