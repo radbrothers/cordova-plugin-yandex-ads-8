@@ -78,6 +78,7 @@ internal class BannerAdsHelper(
 
                     val linearLayout = LinearLayout(cordova.activity)
                     linearLayout.orientation = LinearLayout.VERTICAL
+                    linearLayout.setBackgroundColor(0xFF000000.toInt())
 
                     val webViewParams = LinearLayout.LayoutParams(
                         LinearLayout.LayoutParams.MATCH_PARENT,
@@ -93,6 +94,7 @@ internal class BannerAdsHelper(
                     bannerParams.gravity = android.view.Gravity.CENTER_HORIZONTAL
 
                     bannerContainerLayout = RelativeLayout(cordova.activity)
+                    bannerContainerLayout?.setBackgroundColor(0xFF000000.toInt())
                     val adLayoutParams = RelativeLayout.LayoutParams(
                         RelativeLayout.LayoutParams.WRAP_CONTENT,
                         RelativeLayout.LayoutParams.WRAP_CONTENT
