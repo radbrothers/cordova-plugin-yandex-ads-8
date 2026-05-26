@@ -90,6 +90,7 @@ internal class BannerAdsHelper(
                     val containerW = (bannerSize.optInt("width") * density).toInt()
                     val containerH = (bannerSize.optInt("height") * density).toInt()
                     val bannerParams = LinearLayout.LayoutParams(containerW, containerH)
+                    bannerParams.gravity = android.view.Gravity.CENTER_HORIZONTAL
 
                     bannerContainerLayout = RelativeLayout(cordova.activity)
                     bannerContainerLayout?.setBackgroundColor(0x000000)
