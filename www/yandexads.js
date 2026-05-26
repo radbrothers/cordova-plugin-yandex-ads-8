@@ -74,11 +74,9 @@ let YandexAds = (function () {
                 {
                     throw new Error('YandexAds::init - rewardedBlockId or interstitialBlockId or bannerBlockId is required');
                 }
-
-                // support both new bannerPosition ('top','bottom','left','right') and legacy bannerAtTop
-                if (params.options && params.options.bannerAtTop !== undefined && params.options.bannerPosition === undefined) {
-                    params.options.bannerPosition = params.options.bannerAtTop ? 'top' : 'bottom';
-                }
+                // options.bannerPosition: 'top' | 'bottom' | 'left' | 'right' (default: 'bottom')
+                // options.bannerSize: { width: number, height: number } — required
+                // options.overlap: true = banner overlays WebView, false = banner pushes WebView (default: false)
 
                 callPlugin(
              'run',
