@@ -156,10 +156,18 @@ internal class BannerAdsHelper(
 
     fun load(args: JSONArray?, callbackContext: CallbackContext) {
         // read banner options from args if provided
+        var paramsChanged = false
         args?.optJSONObject(0)?.let { options ->
-            bannerPosition = options.optString(KEY_BANNER_POSITION, BANNER_POSITION_BOTTOM)
-            bannerSize = options.optJSONObject(KEY_BANNER_SIZE) ?: JSONObject()
-            overlap = options.optBoolean(KEY_BANNER_OVERLAP, false)
+            val newPosition = options.optString(KEY_BANNER_POSITION, BANNER_POSITION_BOTTOM)
+            val newSize = options.optJSONObject(KEY_BANNER_SIZE) ?: JSONObject()
+            val newOverlap = options.optBoolean(KEY_BANNER_OVERLAP, false)
+            paramsChanged = newPosition != bannerPosition ||
+                newSize.optInt("width") != bannerSize.optInt("width") ||
+                newSize.optInt("height") != bannerSize.optInt("height") ||
+                newOverlap != overlap
+            bannerPosition = newPosition
+            bannerSize = newSize
+            overlap = newOverlap
         }
 
         // cache container dimensions in px
@@ -168,11 +176,11 @@ internal class BannerAdsHelper(
         containerH = (bannerSize.optInt("height") * density).toInt()
 
         cordova.getActivity().runOnUiThread(Runnable {
-            // if banner already shown — only replace the ad view, keep layout intact
-            if (bannerShown) {
-                destroyBanner()
-            } else {
+            // full reset if params changed or banner not yet shown, partial reset otherwise
+            if (!bannerShown || paramsChanged) {
                 hideBannerView()
+            } else {
+                destroyBanner()
             }
 
             mBannerAdView = BannerAdView(cordova.activity)
@@ -237,6 +245,8 @@ internal class BannerAdsHelper(
 
     private fun hideBannerView() {
         cordova.getActivity().runOnUiThread(Runnable {
+            bannerShown = false
+            bannerLoaded = false
             // remove bannerContainerLayout from wherever it is
             (bannerContainerLayout?.parent as? ViewGroup)?.removeView(bannerContainerLayout)
 
