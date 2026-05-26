@@ -132,12 +132,16 @@ internal class BannerAdsHelper(
                             } else {
                                 view.layout(0, 0, linearLayout.width, webViewH)
                             }
-                            log("+++ forced view.layout: webViewH=$webViewH")
-                            // notify WebView to recalculate its internal viewport
                             view.requestLayout()
                             view.forceLayout()
-                            log("+++ post: view after layout w=${view.width} h=${view.height} top=${view.top} bottom=${view.bottom}")
-                            log("+++ post: bannerContainer top=${bannerContainerLayout?.top} bottom=${bannerContainerLayout?.bottom}")
+
+                            val density = cordova.activity.resources.displayMetrics.density
+                            val bannerHDp = (bannerH / density).toInt()
+                            val side = if (bannerAtTop) "top" else "bottom"
+                            cordovaWebView.loadUrl(
+                                "javascript:cordova.fireWindowEvent('bannerResize', {height: $bannerHDp, heightPx: $bannerH, position: '$side'});"
+                            )
+                            log("+++ bannerResize event fired: heightPx=$bannerH position=$side")
                         }
                     }
                 }
