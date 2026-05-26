@@ -11,6 +11,10 @@ import com.yandex.mobile.ads.banner.BannerAdView
 import com.yandex.mobile.ads.common.AdRequest
 import com.yandex.mobile.ads.common.AdRequestError
 import com.yandex.mobile.ads.common.ImpressionData
+import io.luzh.cordova.plugin.utils.Constants.BANNER_POSITION_BOTTOM
+import io.luzh.cordova.plugin.utils.Constants.BANNER_POSITION_LEFT
+import io.luzh.cordova.plugin.utils.Constants.BANNER_POSITION_RIGHT
+import io.luzh.cordova.plugin.utils.Constants.BANNER_POSITION_TOP
 import io.luzh.cordova.plugin.utils.ConstantsEvents
 import org.apache.cordova.CallbackContext
 import org.apache.cordova.CordovaPlugin
@@ -22,7 +26,7 @@ internal class BannerAdsHelper(
     cordovaPlugin: CordovaPlugin,
     cordovaWebView: CordovaWebView,
     blockId: String,
-    val bannerAtTop: Boolean,
+    val bannerPosition: String,
     val bannerSize: JSONObject?
 ) : BaseAdsHelper<Unit>(cordovaPlugin, cordovaWebView, blockId) {
     private var bannerContainerLayout: RelativeLayout? = null
@@ -30,6 +34,8 @@ internal class BannerAdsHelper(
     private var bannerLoaded: Boolean = false
     private var bannerShown: Boolean = false
     private var mBannerAdView: BannerAdView? = null
+
+    private val isHorizontal get() = bannerPosition == BANNER_POSITION_LEFT || bannerPosition == BANNER_POSITION_RIGHT
 
     override fun getLoader() = null
 
@@ -45,14 +51,17 @@ internal class BannerAdsHelper(
 
             if (bannerSize == null) {
                 // sticky banner — overlay via RelativeLayout
-                val bannerLayoutParams = RelativeLayout.LayoutParams(
-                    RelativeLayout.LayoutParams.MATCH_PARENT,
-                    RelativeLayout.LayoutParams.WRAP_CONTENT
-                ).apply {
-                    val alignRule = if (bannerAtTop) RelativeLayout.ALIGN_PARENT_TOP
-                    else RelativeLayout.ALIGN_PARENT_BOTTOM
-                    addRule(alignRule)
+                val alignRule = when (bannerPosition) {
+                    BANNER_POSITION_TOP -> RelativeLayout.ALIGN_PARENT_TOP
+                    BANNER_POSITION_LEFT -> RelativeLayout.ALIGN_PARENT_LEFT
+                    BANNER_POSITION_RIGHT -> RelativeLayout.ALIGN_PARENT_RIGHT
+                    else -> RelativeLayout.ALIGN_PARENT_BOTTOM
                 }
+
+                val bannerLayoutParams = RelativeLayout.LayoutParams(
+                    RelativeLayout.LayoutParams.WRAP_CONTENT,
+                    RelativeLayout.LayoutParams.WRAP_CONTENT
+                ).apply { addRule(alignRule) }
 
                 bannerParrentLayout = RelativeLayout(cordova.activity)
                 val bannerParrentLayoutParams = RelativeLayout.LayoutParams(
@@ -76,22 +85,9 @@ internal class BannerAdsHelper(
                 if (wvParentView != null) {
                     wvParentView.removeView(view)
 
-                    val linearLayout = LinearLayout(cordova.activity)
-                    linearLayout.orientation = LinearLayout.VERTICAL
-                    linearLayout.setBackgroundColor(0xFF000000.toInt())
-
-                    val webViewParams = LinearLayout.LayoutParams(
-                        LinearLayout.LayoutParams.MATCH_PARENT,
-                        0,
-                        1.0f
-                    )
-
-                    // fix container size to match requested bannerSize (dp → px)
                     val density = cordova.activity.resources.displayMetrics.density
                     val containerW = (bannerSize.optInt("width") * density).toInt()
                     val containerH = (bannerSize.optInt("height") * density).toInt()
-                    val bannerParams = LinearLayout.LayoutParams(containerW, containerH)
-                    bannerParams.gravity = android.view.Gravity.CENTER_HORIZONTAL
 
                     bannerContainerLayout = RelativeLayout(cordova.activity)
                     bannerContainerLayout?.setBackgroundColor(0xFF000000.toInt())
@@ -103,16 +99,44 @@ internal class BannerAdsHelper(
                     adLayoutParams.addRule(RelativeLayout.CENTER_IN_PARENT)
                     bannerContainerLayout?.addView(mBannerAdView, adLayoutParams)
 
-                    if (bannerAtTop) {
-                        linearLayout.addView(bannerContainerLayout, bannerParams)
-                        linearLayout.addView(view, webViewParams)
+                    val linearLayout = LinearLayout(cordova.activity)
+                    linearLayout.setBackgroundColor(0xFF000000.toInt())
+
+                    if (isHorizontal) {
+                        // left/right — horizontal LinearLayout
+                        linearLayout.orientation = LinearLayout.HORIZONTAL
+
+                        val webViewParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, 1.0f)
+                        val bannerParams = LinearLayout.LayoutParams(containerW, LinearLayout.LayoutParams.MATCH_PARENT)
+                        bannerParams.gravity = android.view.Gravity.CENTER_VERTICAL
+
+                        if (bannerPosition == BANNER_POSITION_LEFT) {
+                            linearLayout.addView(bannerContainerLayout, bannerParams)
+                            linearLayout.addView(view, webViewParams)
+                        } else {
+                            linearLayout.addView(view, webViewParams)
+                            linearLayout.addView(bannerContainerLayout, bannerParams)
+                        }
                     } else {
-                        linearLayout.addView(view, webViewParams)
-                        linearLayout.addView(bannerContainerLayout, bannerParams)
+                        // top/bottom — vertical LinearLayout
+                        linearLayout.orientation = LinearLayout.VERTICAL
+
+                        val webViewParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1.0f)
+                        val bannerParams = LinearLayout.LayoutParams(containerW, containerH)
+                        bannerParams.gravity = android.view.Gravity.CENTER_HORIZONTAL
+
+                        if (bannerPosition == BANNER_POSITION_TOP) {
+                            linearLayout.addView(bannerContainerLayout, bannerParams)
+                            linearLayout.addView(view, webViewParams)
+                        } else {
+                            linearLayout.addView(view, webViewParams)
+                            linearLayout.addView(bannerContainerLayout, bannerParams)
+                        }
                     }
 
                     cordova.activity.setContentView(linearLayout)
 
+                    // trigger WebView viewport recalculation via instant fullscreen toggle
                     linearLayout.post {
                         cordovaWebView.loadUrl(
                             "javascript:setTimeout(function(){" +
@@ -120,26 +144,11 @@ internal class BannerAdsHelper(
                             "var req = el.requestFullscreen || el.webkitRequestFullscreen;" +
                             "var exit = document.exitFullscreen || document.webkitExitFullscreen;" +
                             "if(req && exit){" +
-                            "document.addEventListener('fullscreenchange', function onFsChange(){" +
-                            "if(!document.fullscreenElement){" +
-                            "document.removeEventListener('fullscreenchange', onFsChange);" +
-                            "cordova.fireWindowEvent('bannerFullscreenExit');" +
-                            "}" +
-                            "});" +
-                            "req.call(el).catch(function(e){ console.log('fs error: ' + e); });" +
+                            "req.call(el).then(function(){ exit.call(document); })" +
+                            ".catch(function(e){ console.log('fs error: ' + e); });" +
                             "}" +
                             "}, 300);"
                         )
-
-                        // hide banner before fullscreen
-                        bannerContainerLayout?.visibility = android.view.View.INVISIBLE
-
-                        // listen for exit fullscreen to restore banner
-                        cordovaWebView.view.post {
-                            android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
-                                bannerContainerLayout?.visibility = android.view.View.VISIBLE
-                            }, 800)
-                        }
                     }
                 }
             }
@@ -246,11 +255,15 @@ internal class BannerAdsHelper(
                     emitWindowEvent(ConstantsEvents.EVENT_BANNER_DID_LOAD)
 
                     if (bannerSize == null) {
-                        val alignRule = if (bannerAtTop) RelativeLayout.ALIGN_PARENT_TOP
-                        else RelativeLayout.ALIGN_PARENT_BOTTOM
+                        val alignRule = when (bannerPosition) {
+                            BANNER_POSITION_TOP -> RelativeLayout.ALIGN_PARENT_TOP
+                            BANNER_POSITION_LEFT -> RelativeLayout.ALIGN_PARENT_LEFT
+                            BANNER_POSITION_RIGHT -> RelativeLayout.ALIGN_PARENT_RIGHT
+                            else -> RelativeLayout.ALIGN_PARENT_BOTTOM
+                        }
 
                         val bannerParrentParams = RelativeLayout.LayoutParams(
-                            RelativeLayout.LayoutParams.MATCH_PARENT,
+                            RelativeLayout.LayoutParams.WRAP_CONTENT,
                             RelativeLayout.LayoutParams.WRAP_CONTENT
                         ).apply { addRule(alignRule) }
 
@@ -261,7 +274,7 @@ internal class BannerAdsHelper(
                             RelativeLayout.LayoutParams.WRAP_CONTENT,
                             RelativeLayout.LayoutParams.WRAP_CONTENT
                         )
-                        layoutParams.addRule(RelativeLayout.CENTER_HORIZONTAL)
+                        layoutParams.addRule(RelativeLayout.CENTER_IN_PARENT)
                         bannerContainerLayout?.addView(mBannerAdView, layoutParams)
                         mBannerAdView?.layoutParams = layoutParams
                     }
