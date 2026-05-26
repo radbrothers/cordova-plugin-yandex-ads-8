@@ -111,14 +111,21 @@ internal class BannerAdsHelper(
 
                     // bypass ContentFrameLayout entirely — set as Activity content directly
                     cordova.activity.setContentView(linearLayout)
+
+                    log("+++ setContentView done")
+                    log("+++ linearLayout childCount: ${linearLayout.childCount}")
+                    log("+++ child[0]: ${linearLayout.getChildAt(0)?.javaClass?.simpleName}")
+                    log("+++ child[1]: ${linearLayout.getChildAt(1)?.javaClass?.simpleName}")
+                    log("+++ view.layoutParams type: ${view.layoutParams?.javaClass?.simpleName}")
+                    log("+++ view.layoutParams h: ${view.layoutParams?.height}")
+
+                    linearLayout.post {
+                        log("+++ post: linearLayout w=${linearLayout.width} h=${linearLayout.height}")
+                        log("+++ post: view w=${view.width} h=${view.height}")
+                        log("+++ post: bannerContainer w=${bannerContainerLayout?.width} h=${bannerContainerLayout?.height}")
+                    }
                 }
 
-                val contentView = cordova.activity.findViewById<ViewGroup>(R.id.content)
-                if (contentView != null) {
-                    contentView.bringToFront()
-                    contentView.requestLayout()
-                    contentView.requestFocus()
-                }
             }
 
             callbackContext.success()
