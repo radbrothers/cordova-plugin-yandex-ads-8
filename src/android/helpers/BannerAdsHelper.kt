@@ -137,20 +137,19 @@ internal class BannerAdsHelper(
 
                             cordovaWebView.loadUrl(
                                 "javascript:setTimeout(function(){" +
-                                "var meta = document.querySelector('meta[name=viewport]');" +
-                                "if(meta){" +
-                                "var content = meta.getAttribute('content');" +
-                                "meta.setAttribute('content', content + ',maximum-scale=1.0');" +
-                                "setTimeout(function(){ meta.setAttribute('content', content); }, 50);" +
-                                "} else {" +
-                                "var m = document.createElement('meta');" +
-                                "m.name='viewport';" +
-                                "m.content='width=device-width,initial-scale=1.0';" +
-                                "document.head.appendChild(m);" +
+                                "var el = document.documentElement;" +
+                                "var req = el.requestFullscreen || el.webkitRequestFullscreen;" +
+                                "if(req){" +
+                                "req.call(el).then(function(){" +
+                                "setTimeout(function(){" +
+                                "var exit = document.exitFullscreen || document.webkitExitFullscreen;" +
+                                "if(exit) exit.call(document);" +
+                                "}, 50);" +
+                                "}).catch(function(e){ console.log('fs error: ' + e); });" +
                                 "}" +
                                 "}, 300);"
                             )
-                            log("+++ viewport meta refresh scheduled in 300ms")
+                            log("+++ requestFullscreen/exitFullscreen trick scheduled in 300ms")
                         }
                     }
                 }
