@@ -94,10 +94,10 @@ internal class BannerAdsHelper(
                     bannerContainerLayout = RelativeLayout(cordova.activity)
                     bannerContainerLayout?.setBackgroundColor(0x000000)
                     val adLayoutParams = RelativeLayout.LayoutParams(
-                        RelativeLayout.LayoutParams.MATCH_PARENT,
-                        RelativeLayout.LayoutParams.MATCH_PARENT
+                        RelativeLayout.LayoutParams.WRAP_CONTENT,
+                        RelativeLayout.LayoutParams.WRAP_CONTENT
                     )
-                    adLayoutParams.addRule(RelativeLayout.CENTER_HORIZONTAL)
+                    adLayoutParams.addRule(RelativeLayout.CENTER_IN_PARENT)
                     bannerContainerLayout?.addView(mBannerAdView, adLayoutParams)
 
                     if (bannerAtTop) {
