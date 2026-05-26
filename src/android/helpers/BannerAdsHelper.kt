@@ -5,7 +5,6 @@ import android.view.ViewGroup
 import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.RelativeLayout
-import androidx.core.view.contains
 import com.yandex.mobile.ads.banner.BannerAdEventListener
 import com.yandex.mobile.ads.banner.BannerAdSize
 import com.yandex.mobile.ads.banner.BannerAdView
@@ -33,7 +32,6 @@ internal class BannerAdsHelper(
     blockId: String
 ) : BaseAdsHelper<Unit>(cordovaPlugin, cordovaWebView, blockId) {
     private var bannerContainerLayout: RelativeLayout? = null
-    private var placeholderLayout: FrameLayout? = null
     private var bannerLoaded: Boolean = false
     private var bannerShown: Boolean = false
     private var mBannerAdView: BannerAdView? = null
@@ -42,6 +40,10 @@ internal class BannerAdsHelper(
     private var bannerPosition: String = BANNER_POSITION_BOTTOM
     private var bannerSize: JSONObject = JSONObject()
     private var overlap: Boolean = false
+
+    // cached px dimensions — used to keep container size stable on empty ad response
+    private var containerW: Int = 0
+    private var containerH: Int = 0
 
     private val isHorizontal get() = bannerPosition == BANNER_POSITION_LEFT || bannerPosition == BANNER_POSITION_RIGHT
 
@@ -56,10 +58,6 @@ internal class BannerAdsHelper(
 
             bannerShown = true
 
-            val density = cordova.activity.resources.displayMetrics.density
-            val containerW = (bannerSize.optInt("width") * density).toInt()
-            val containerH = (bannerSize.optInt("height") * density).toInt()
-
             bannerContainerLayout = RelativeLayout(cordova.activity)
             bannerContainerLayout?.setBackgroundColor(0xFF000000.toInt())
             val adLayoutParams = RelativeLayout.LayoutParams(containerW, containerH)
@@ -67,9 +65,9 @@ internal class BannerAdsHelper(
             bannerContainerLayout?.addView(mBannerAdView, adLayoutParams)
 
             if (overlap) {
-                showOverlap(containerW, containerH)
+                showOverlap()
             } else {
-                showPush(containerW, containerH)
+                showPush()
             }
 
             callbackContext.success()
@@ -79,7 +77,7 @@ internal class BannerAdsHelper(
     /**
      * Overlay mode — banner floats over WebView using FrameLayout gravity
      */
-    private fun showOverlap(containerW: Int, containerH: Int) {
+    private fun showOverlap() {
         val wvParent = cordovaWebView.view.parent as? ViewGroup ?: cordovaWebView as ViewGroup
 
         val gravity = when (bannerPosition) {
@@ -97,18 +95,13 @@ internal class BannerAdsHelper(
     }
 
     /**
-     * Push mode — fixed placeholder pushes WebView, banner overlays on top of placeholder
+     * Push mode — banner pushes WebView using LinearLayout weight
      */
-    private fun showPush(containerW: Int, containerH: Int) {
+    private fun showPush() {
         val view = cordovaWebView.view
         val wvParentView = view.parent as? ViewGroup ?: return
 
         wvParentView.removeView(view)
-
-        // fixed placeholder — never changes size, always pushes WebView
-        val placeholder = FrameLayout(cordova.activity)
-        placeholder.setBackgroundColor(0xFF000000.toInt())
-        placeholderLayout = placeholder
 
         val linearLayout = LinearLayout(cordova.activity)
         linearLayout.setBackgroundColor(0xFF000000.toInt())
@@ -117,68 +110,36 @@ internal class BannerAdsHelper(
             linearLayout.orientation = LinearLayout.HORIZONTAL
 
             val webViewParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, 1.0f)
-            val placeholderParams = LinearLayout.LayoutParams(containerW, LinearLayout.LayoutParams.MATCH_PARENT)
+            val bannerParams = LinearLayout.LayoutParams(containerW, LinearLayout.LayoutParams.MATCH_PARENT)
+            bannerParams.gravity = Gravity.CENTER_VERTICAL
 
             if (bannerPosition == BANNER_POSITION_LEFT) {
-                linearLayout.addView(placeholder, placeholderParams)
+                linearLayout.addView(bannerContainerLayout, bannerParams)
                 linearLayout.addView(view, webViewParams)
             } else {
                 linearLayout.addView(view, webViewParams)
-                linearLayout.addView(placeholder, placeholderParams)
+                linearLayout.addView(bannerContainerLayout, bannerParams)
             }
         } else {
             linearLayout.orientation = LinearLayout.VERTICAL
 
             val webViewParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1.0f)
-            val placeholderParams = LinearLayout.LayoutParams(containerW, containerH)
-            placeholderParams.gravity = Gravity.CENTER_HORIZONTAL
+            val bannerParams = LinearLayout.LayoutParams(containerW, containerH)
+            bannerParams.gravity = Gravity.CENTER_HORIZONTAL
 
             if (bannerPosition == BANNER_POSITION_TOP) {
-                linearLayout.addView(placeholder, placeholderParams)
+                linearLayout.addView(bannerContainerLayout, bannerParams)
                 linearLayout.addView(view, webViewParams)
             } else {
                 linearLayout.addView(view, webViewParams)
-                linearLayout.addView(placeholder, placeholderParams)
+                linearLayout.addView(bannerContainerLayout, bannerParams)
             }
         }
 
         cordova.activity.setContentView(linearLayout)
 
-        // overlay bannerContainerLayout on top of placeholder
+        // trigger WebView viewport recalculation via instant fullscreen toggle
         linearLayout.post {
-            val location = IntArray(2)
-            placeholder.getLocationInWindow(location)
-            val placeholderX = location[0].toFloat()
-            val placeholderY = location[1].toFloat()
-
-            val bannerLp = FrameLayout.LayoutParams(
-                if (isHorizontal) containerW else containerW,
-                if (isHorizontal) LinearLayout.LayoutParams.MATCH_PARENT else containerH
-            )
-
-            // wrap linearLayout in FrameLayout so we can overlay bannerContainerLayout
-            val frameWrapper = FrameLayout(cordova.activity)
-            val llParent = linearLayout.parent as? ViewGroup
-            llParent?.removeView(linearLayout)
-            frameWrapper.addView(linearLayout, ViewGroup.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.MATCH_PARENT
-            ))
-            frameWrapper.addView(bannerContainerLayout, bannerLp.also {
-                it.gravity = when (bannerPosition) {
-                    BANNER_POSITION_TOP -> Gravity.TOP or Gravity.CENTER_HORIZONTAL
-                    BANNER_POSITION_LEFT -> Gravity.LEFT or Gravity.CENTER_VERTICAL
-                    BANNER_POSITION_RIGHT -> Gravity.RIGHT or Gravity.CENTER_VERTICAL
-                    else -> Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
-                }
-            })
-            llParent?.addView(frameWrapper, ViewGroup.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.MATCH_PARENT
-            ))
-            bannerContainerLayout?.bringToFront()
-
-            // trigger WebView viewport recalculation via instant fullscreen toggle
             cordovaWebView.loadUrl(
                 "javascript:setTimeout(function(){" +
                 "var el = document.documentElement;" +
@@ -190,12 +151,6 @@ internal class BannerAdsHelper(
                 "}" +
                 "}, 300);"
             )
-
-            // restore banner to front after fullscreen recalculation completes (~300ms trigger + ~300ms fs cycle)
-            cordovaWebView.view.postDelayed({
-                bannerContainerLayout?.bringToFront()
-                (bannerContainerLayout?.parent as? ViewGroup)?.invalidate()
-            }, 700)
         }
     }
 
@@ -210,6 +165,11 @@ internal class BannerAdsHelper(
             bannerSize = options.optJSONObject(KEY_BANNER_SIZE) ?: JSONObject()
             overlap = options.optBoolean(KEY_BANNER_OVERLAP, false)
         }
+
+        // cache container dimensions in px
+        val density = cordova.activity.resources.displayMetrics.density
+        containerW = (bannerSize.optInt("width") * density).toInt()
+        containerH = (bannerSize.optInt("height") * density).toInt()
 
         cordova.getActivity().runOnUiThread(Runnable {
             hideBannerView()
@@ -239,6 +199,18 @@ internal class BannerAdsHelper(
 
                 override fun onAdFailedToLoad(error: AdRequestError) {
                     emitWindowEvent(ConstantsEvents.EVENT_BANNER_FAILED_TO_LOAD, error.description)
+                    // keep container size stable on empty ad response
+                    cordova.activity.runOnUiThread {
+                        bannerContainerLayout?.let { container ->
+                            val lp = container.layoutParams
+                            if (lp != null && (lp.width != containerW || lp.height != containerH)) {
+                                lp.width = containerW
+                                lp.height = containerH
+                                container.layoutParams = lp
+                                container.requestLayout()
+                            }
+                        }
+                    }
                 }
 
                 override fun onAdClicked() {
@@ -274,19 +246,15 @@ internal class BannerAdsHelper(
                 // push mode — restore WebView back to its original parent (ContentFrameLayout)
                 val view = cordovaWebView.view
                 val linearLayout = view.parent as? LinearLayout
-                val frameWrapper = linearLayout?.parent as? FrameLayout
-                val originalParent = frameWrapper?.parent as? ViewGroup ?: linearLayout?.parent as? ViewGroup
-
                 if (linearLayout != null) {
+                    val originalParent = linearLayout.parent as? ViewGroup
                     linearLayout.removeView(view)
-                    originalParent?.removeView(frameWrapper ?: linearLayout)
+                    originalParent?.removeView(linearLayout)
                     originalParent?.addView(view, ViewGroup.LayoutParams(
                         ViewGroup.LayoutParams.MATCH_PARENT,
                         ViewGroup.LayoutParams.MATCH_PARENT
                     ))
                 }
-                (bannerContainerLayout?.parent as? ViewGroup)?.removeView(bannerContainerLayout)
-                placeholderLayout = null
             }
 
             bannerContainerLayout?.removeView(mBannerAdView)
