@@ -190,6 +190,12 @@ internal class BannerAdsHelper(
                 "}" +
                 "}, 300);"
             )
+
+            // restore banner to front after fullscreen recalculation completes (~300ms trigger + ~300ms fs cycle)
+            cordovaWebView.view.postDelayed({
+                bannerContainerLayout?.bringToFront()
+                (bannerContainerLayout?.parent as? ViewGroup)?.invalidate()
+            }, 700)
         }
     }
 
