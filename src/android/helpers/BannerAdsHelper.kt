@@ -1,6 +1,7 @@
 package io.luzh.cordova.plugin.helpers
 
 import android.view.Gravity
+import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import android.widget.LinearLayout
@@ -59,11 +60,17 @@ internal class BannerAdsHelper(
             val containerW = (bannerSize.optInt("width") * density).toInt()
             val containerH = (bannerSize.optInt("height") * density).toInt()
 
-            bannerContainerLayout = RelativeLayout(cordova.activity)
+            val fixedW = containerW
+            val fixedH = containerH
+            bannerContainerLayout = object : RelativeLayout(cordova.activity) {
+                override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
+                    super.onMeasure(
+                        MeasureSpec.makeMeasureSpec(fixedW, MeasureSpec.EXACTLY),
+                        MeasureSpec.makeMeasureSpec(fixedH, MeasureSpec.EXACTLY)
+                    )
+                }
+            }
             bannerContainerLayout?.setBackgroundColor(0xFF000000.toInt())
-            // fix container size so it never collapses on empty ad response
-            bannerContainerLayout?.minimumWidth = containerW
-            bannerContainerLayout?.minimumHeight = containerH
             val adLayoutParams = RelativeLayout.LayoutParams(containerW, containerH)
             adLayoutParams.addRule(RelativeLayout.CENTER_IN_PARENT)
             bannerContainerLayout?.addView(mBannerAdView, adLayoutParams)
