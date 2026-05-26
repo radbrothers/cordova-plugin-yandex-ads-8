@@ -4,8 +4,8 @@ import android.net.Uri
 import android.util.Log
 // import packagenamehere.R
 import com.yandex.mobile.ads.common.InitializationListener
-import com.yandex.mobile.ads.common.YandexAds.initialize
-import com.yandex.mobile.ads.common.YandexAds.setUserConsent
+import com.yandex.mobile.ads.common.MobileAds.initialize
+import com.yandex.mobile.ads.common.MobileAds.setUserConsent
 import io.luzh.cordova.plugin.helpers.BannerAdsHelper
 import io.luzh.cordova.plugin.helpers.FeedAdsHelper
 import io.luzh.cordova.plugin.helpers.InterstitialAdsHelper
@@ -14,7 +14,10 @@ import io.luzh.cordova.plugin.helpers.RewardedAdsHelper
 // import io.luzh.cordova.plugin.helpers.instream.InstreamAdsHelper
 import io.luzh.cordova.plugin.utils.Constants
 import io.luzh.cordova.plugin.utils.Constants.KEY_BANNER_AT_TOP
+import io.luzh.cordova.plugin.utils.Constants.KEY_BANNER_POSITION
 import io.luzh.cordova.plugin.utils.Constants.KEY_BANNER_SIZE
+import io.luzh.cordova.plugin.utils.Constants.BANNER_POSITION_TOP
+import io.luzh.cordova.plugin.utils.Constants.BANNER_POSITION_BOTTOM
 import io.luzh.cordova.plugin.utils.Constants.KEY_BLOCK_ID_BANNER
 import io.luzh.cordova.plugin.utils.Constants.KEY_BLOCK_ID_FEED
 import io.luzh.cordova.plugin.utils.Constants.KEY_BLOCK_ID_INSTREAM
@@ -119,12 +122,16 @@ class YandexAdsPlugin : CordovaPlugin() {
         val feedBlockId: String = args.getString(KEY_BLOCK_ID_FEED)
         val options = args.optJSONObject(KEY_OPTIONS)
 
-        val bannerAtTop = options.optBoolean(KEY_BANNER_AT_TOP, false)
+        // support both new bannerPosition and legacy bannerAtTop
+        val bannerPosition = options.optString(KEY_BANNER_POSITION, "").ifEmpty {
+            if (options.optBoolean(KEY_BANNER_AT_TOP, false)) BANNER_POSITION_TOP
+            else BANNER_POSITION_BOTTOM
+        }
         val bannerSize = options.optJSONObject(KEY_BANNER_SIZE)
 
         // val intreamContentUrl = Uri.parse("android.resource://" + cordova.context.packageName + "/" + R.raw.jc).toString()
 
-        bannerAdsHelper = BannerAdsHelper(this, webView, bannerBlockId, bannerAtTop, bannerSize)
+        bannerAdsHelper = BannerAdsHelper(this, webView, bannerBlockId, bannerPosition, bannerSize)
         rewardedAdsHelper = RewardedAdsHelper(this, webView, rewardedBlockId)
         interstitialAdsHelper = InterstitialAdsHelper(this, webView, interstitialBlockId)
         openAppAdsHelper = OpenAppAdsHelper(this, webView, openAppBlockId)
