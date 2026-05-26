@@ -175,6 +175,11 @@ internal class BannerAdsHelper(
             hideBannerView()
             mBannerAdView = BannerAdView(cordova.activity)
 
+            // disable D-pad/keyboard focus for TV devices
+            mBannerAdView?.isFocusable = false
+            mBannerAdView?.isFocusableInTouchMode = false
+            mBannerAdView?.descendantFocusability = ViewGroup.FOCUS_BLOCK_DESCENDANTS
+
             val adSize = BannerAdSize.inline( // FIXME_SDK8: Auto-generated during migration, please review.
                 cordova.context,
                 bannerSize.optInt("width"),
@@ -218,60 +223,6 @@ internal class BannerAdsHelper(
             hideBannerView()
             callbackContext.success()
         })
-    }
-
-    fun reload(callbackContext: CallbackContext) {
-        cordova.activity.runOnUiThread {
-            if (mBannerAdView != null && bannerShown) {
-                (mBannerAdView?.parent as? ViewGroup)?.removeView(mBannerAdView)
-                destroyBanner()
-            }
-
-            mBannerAdView = BannerAdView(cordovaPlugin.cordova.activity)
-
-            val adSize = BannerAdSize.inline( // FIXME_SDK8: Auto-generated during migration, please review.
-                cordovaPlugin.cordova.context,
-                bannerSize.optInt("width"),
-                bannerSize.optInt("height")
-            )
-
-            mBannerAdView?.setAdSize(adSize)
-            bannerShown = false
-
-            val adRequest: AdRequest = AdRequest.Builder(blockId).build() // FIXME_SDK8: Auto-generated during migration, please review.
-
-            mBannerAdView?.setBannerAdEventListener(object : BannerAdEventListener {
-                override fun onAdLoaded() {
-                    bannerLoaded = true
-                    emitWindowEvent(ConstantsEvents.EVENT_BANNER_DID_LOAD)
-
-                    val layoutParams = RelativeLayout.LayoutParams(
-                        RelativeLayout.LayoutParams.WRAP_CONTENT,
-                        RelativeLayout.LayoutParams.WRAP_CONTENT
-                    )
-                    layoutParams.addRule(RelativeLayout.CENTER_IN_PARENT)
-                    bannerContainerLayout?.addView(mBannerAdView, layoutParams)
-                    mBannerAdView?.layoutParams = layoutParams
-
-                    bannerShown = true
-                }
-
-                override fun onAdFailedToLoad(error: AdRequestError) {
-                    emitWindowEvent(ConstantsEvents.EVENT_BANNER_FAILED_TO_LOAD, error.description)
-                }
-
-                override fun onAdClicked() {
-                    emitWindowEvent(ConstantsEvents.EVENT_BANNER_DID_CLICK)
-                }
-
-                override fun onImpression(impressionData: ImpressionData?) {
-                    emitWindowEvent(ConstantsEvents.EVENT_BANNER_IMPRESSION)
-                }
-            })
-
-            mBannerAdView?.loadAd(adRequest)
-            callbackContext.success()
-        }
     }
 
     private fun hideBannerView() {
