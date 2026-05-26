@@ -93,7 +93,6 @@ internal class BannerAdsHelper(
                     bannerParams.gravity = android.view.Gravity.CENTER_HORIZONTAL
 
                     bannerContainerLayout = RelativeLayout(cordova.activity)
-                    bannerContainerLayout?.setBackgroundColor(0x000000)
                     val adLayoutParams = RelativeLayout.LayoutParams(
                         RelativeLayout.LayoutParams.WRAP_CONTENT,
                         RelativeLayout.LayoutParams.WRAP_CONTENT
@@ -136,6 +135,7 @@ internal class BannerAdsHelper(
         cordova.getActivity().runOnUiThread(Runnable {
             hideBannerView()
             mBannerAdView = BannerAdView(cordova.activity)
+            mBannerAdView?.setBackgroundColor(0xFF000000.toInt())
 
             val adSize =
                 if (bannerSize != null && bannerSize.has("width") && bannerSize.has("height")) {
