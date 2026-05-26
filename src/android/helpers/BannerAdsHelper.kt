@@ -16,25 +16,31 @@ import io.luzh.cordova.plugin.utils.Constants.BANNER_POSITION_BOTTOM
 import io.luzh.cordova.plugin.utils.Constants.BANNER_POSITION_LEFT
 import io.luzh.cordova.plugin.utils.Constants.BANNER_POSITION_RIGHT
 import io.luzh.cordova.plugin.utils.Constants.BANNER_POSITION_TOP
+import io.luzh.cordova.plugin.utils.Constants.KEY_BANNER_OVERLAP
+import io.luzh.cordova.plugin.utils.Constants.KEY_BANNER_POSITION
+import io.luzh.cordova.plugin.utils.Constants.KEY_BANNER_SIZE
 import io.luzh.cordova.plugin.utils.ConstantsEvents
 import org.apache.cordova.CallbackContext
 import org.apache.cordova.CordovaPlugin
 import org.apache.cordova.CordovaWebView
+import org.json.JSONArray
 import org.json.JSONObject
 
 
 internal class BannerAdsHelper(
     cordovaPlugin: CordovaPlugin,
     cordovaWebView: CordovaWebView,
-    blockId: String,
-    val bannerPosition: String,
-    val bannerSize: JSONObject,
-    val overlap: Boolean
+    blockId: String
 ) : BaseAdsHelper<Unit>(cordovaPlugin, cordovaWebView, blockId) {
     private var bannerContainerLayout: RelativeLayout? = null
     private var bannerLoaded: Boolean = false
     private var bannerShown: Boolean = false
     private var mBannerAdView: BannerAdView? = null
+
+    // set during load()
+    private var bannerPosition: String = BANNER_POSITION_BOTTOM
+    private var bannerSize: JSONObject = JSONObject()
+    private var overlap: Boolean = false
 
     private val isHorizontal get() = bannerPosition == BANNER_POSITION_LEFT || bannerPosition == BANNER_POSITION_RIGHT
 
@@ -154,6 +160,17 @@ internal class BannerAdsHelper(
     }
 
     override fun load(callbackContext: CallbackContext) {
+        load(null, callbackContext)
+    }
+
+    fun load(args: JSONArray?, callbackContext: CallbackContext) {
+        // read banner options from args if provided
+        args?.optJSONObject(0)?.let { options ->
+            bannerPosition = options.optString(KEY_BANNER_POSITION, BANNER_POSITION_BOTTOM)
+            bannerSize = options.optJSONObject(KEY_BANNER_SIZE) ?: JSONObject()
+            overlap = options.optBoolean(KEY_BANNER_OVERLAP, false)
+        }
+
         cordova.getActivity().runOnUiThread(Runnable {
             hideBannerView()
             mBannerAdView = BannerAdView(cordova.activity)
@@ -269,6 +286,21 @@ internal class BannerAdsHelper(
                 if (linearLayout != null) {
                     linearLayout.removeView(view)
                     cordova.activity.setContentView(view)
+
+                    // trigger WebView viewport recalculation
+                    view.post {
+                        cordovaWebView.loadUrl(
+                            "javascript:setTimeout(function(){" +
+                            "var el = document.documentElement;" +
+                            "var req = el.requestFullscreen || el.webkitRequestFullscreen;" +
+                            "var exit = document.exitFullscreen || document.webkitExitFullscreen;" +
+                            "if(req && exit){" +
+                            "req.call(el).then(function(){ exit.call(document); })" +
+                            ".catch(function(e){ console.log('fs error: ' + e); });" +
+                            "}" +
+                            "}, 300);"
+                        )
+                    }
                 }
             }
 
