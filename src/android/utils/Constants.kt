@@ -10,9 +10,9 @@ internal object Constants {
     const val KEY_BLOCK_ID_INSTREAM = 4
     const val KEY_BLOCK_ID_FEED = 5
     const val KEY_OPTIONS = 6
-    const val KEY_BANNER_POSITION = "bannerPosition" // replaces KEY_BANNER_AT_TOP
-    const val KEY_BANNER_AT_TOP = "bannerAtTop"      // kept for backward compatibility
+    const val KEY_BANNER_POSITION = "bannerPosition"
     const val KEY_BANNER_SIZE = "bannerSize"
+    const val KEY_BANNER_OVERLAP = "overlap"
 
     const val BANNER_POSITION_TOP = "top"
     const val BANNER_POSITION_BOTTOM = "bottom"
