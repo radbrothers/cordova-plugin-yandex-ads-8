@@ -209,6 +209,7 @@ internal class BannerAdsHelper(
                     // if banner already shown — update container with new ad view
                     if (bannerShown) {
                         cordova.activity.runOnUiThread {
+                            log("+++ update before: top=${bannerContainerLayout?.top} lp=${bannerContainerLayout?.layoutParams?.javaClass?.simpleName}")
                             // restore correct layoutParams — SDK may have reset them
                             if (!overlap) {
                                 val lp = if (isHorizontal) {
@@ -223,6 +224,9 @@ internal class BannerAdsHelper(
                             val adLayoutParams = RelativeLayout.LayoutParams(containerW, containerH)
                             adLayoutParams.addRule(RelativeLayout.CENTER_IN_PARENT)
                             bannerContainerLayout?.addView(mBannerAdView, adLayoutParams)
+                            bannerContainerLayout?.post {
+                                log("+++ update post: top=${bannerContainerLayout?.top} lp=${bannerContainerLayout?.layoutParams?.javaClass?.simpleName}")
+                            }
                         }
                     }
                 }
