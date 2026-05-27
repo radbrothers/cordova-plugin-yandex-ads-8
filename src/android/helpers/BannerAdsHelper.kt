@@ -230,6 +230,7 @@ internal class BannerAdsHelper(
                             }
                             val adLayoutParams = RelativeLayout.LayoutParams(containerW, containerH)
                             adLayoutParams.addRule(RelativeLayout.CENTER_IN_PARENT)
+                            (mBannerAdView?.parent as? ViewGroup)?.removeView(mBannerAdView)
                             bannerContainerLayout?.addView(mBannerAdView, adLayoutParams)
                         }
                     }
