@@ -269,7 +269,9 @@ internal class BannerAdsHelper(
         // remove spacer and restore WebView to original parent
         if (!overlap && linearLayout != null) {
             val view = cordovaWebView.view
+            val decorView = cordova.activity.window.decorView as? ViewGroup
             linearLayout?.removeView(view)
+            decorView?.removeView(linearLayout)
             cordova.activity.setContentView(view)
             linearLayout = null
             spacerLayout = null
