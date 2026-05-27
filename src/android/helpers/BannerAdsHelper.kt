@@ -282,6 +282,11 @@ internal class BannerAdsHelper(
                 ViewGroup.LayoutParams.MATCH_PARENT
             ))
             log("+++ hideBannerView after: originalParent childCount=${originalParent?.childCount}")
+            val decorView = cordova.activity.window.decorView as? ViewGroup
+            log("+++ DecorView childCount=${decorView?.childCount}")
+            for (i in 0 until (decorView?.childCount ?: 0)) {
+                log("+++ DecorView child[$i]: ${decorView?.getChildAt(i)?.javaClass?.simpleName} visibility=${decorView?.getChildAt(i)?.visibility}")
+            }
             linearLayout = null
             spacerLayout = null
         }
