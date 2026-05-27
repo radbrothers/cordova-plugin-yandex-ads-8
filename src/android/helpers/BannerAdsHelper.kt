@@ -209,24 +209,28 @@ internal class BannerAdsHelper(
                     // if banner already shown — update container with new ad view
                     if (bannerShown) {
                         cordova.activity.runOnUiThread {
-                            log("+++ update before: top=${bannerContainerLayout?.top} lp=${bannerContainerLayout?.layoutParams?.javaClass?.simpleName}")
-                            // restore correct layoutParams — SDK may have reset them
-                            if (!overlap) {
-                                val lp = if (isHorizontal) {
-                                    LinearLayout.LayoutParams(containerW, LinearLayout.LayoutParams.MATCH_PARENT)
+                            // fix layoutParams type silently without triggering requestLayout
+                            val currentLp = bannerContainerLayout?.layoutParams
+                            if (currentLp != null && currentLp !is LinearLayout.LayoutParams && !overlap) {
+                                val newLp = if (isHorizontal) {
+                                    LinearLayout.LayoutParams(currentLp.width, LinearLayout.LayoutParams.MATCH_PARENT)
                                 } else {
-                                    LinearLayout.LayoutParams(containerW, containerH).also {
+                                    LinearLayout.LayoutParams(currentLp.width, currentLp.height).also {
                                         it.gravity = Gravity.CENTER_HORIZONTAL
                                     }
                                 }
-                                bannerContainerLayout?.layoutParams = lp
+                                // set directly without triggering layout pass
+                                try {
+                                    val field = android.view.View::class.java.getDeclaredField("mLayoutParams")
+                                    field.isAccessible = true
+                                    field.set(bannerContainerLayout, newLp)
+                                } catch (e: Exception) {
+                                    log("+++ failed to set mLayoutParams: ${e.message}")
+                                }
                             }
                             val adLayoutParams = RelativeLayout.LayoutParams(containerW, containerH)
                             adLayoutParams.addRule(RelativeLayout.CENTER_IN_PARENT)
                             bannerContainerLayout?.addView(mBannerAdView, adLayoutParams)
-                            bannerContainerLayout?.post {
-                                log("+++ update post: top=${bannerContainerLayout?.top} lp=${bannerContainerLayout?.layoutParams?.javaClass?.simpleName}")
-                            }
                         }
                     }
                 }
