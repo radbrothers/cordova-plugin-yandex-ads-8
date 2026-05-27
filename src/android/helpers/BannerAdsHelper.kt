@@ -85,9 +85,6 @@ internal class BannerAdsHelper(
         }
 
         log("+++ showBannerOverlay: wvParent=${wvParent.javaClass.simpleName} childCount=${wvParent.childCount}")
-        for (i in 0 until wvParent.childCount) {
-            log("+++ child[$i]: ${wvParent.getChildAt(i).javaClass.simpleName}")
-        }
 
         val gravity = when (bannerPosition) {
             BANNER_POSITION_TOP -> Gravity.TOP or Gravity.CENTER_HORIZONTAL
@@ -265,7 +262,6 @@ internal class BannerAdsHelper(
         bannerLoaded = false
 
         // remove banner overlay
-        log("+++ hideBannerView: bannerContainer parent=${bannerContainerLayout?.parent?.javaClass?.simpleName}")
         (bannerContainerLayout?.parent as? ViewGroup)?.removeView(bannerContainerLayout)
         bannerContainerLayout?.removeView(mBannerAdView)
         bannerContainerLayout = null
@@ -273,20 +269,8 @@ internal class BannerAdsHelper(
         // remove spacer and restore WebView to original parent
         if (!overlap && linearLayout != null) {
             val view = cordovaWebView.view
-            val originalParent = linearLayout?.parent as? ViewGroup
-            log("+++ hideBannerView: linearLayout.parent=${originalParent?.javaClass?.simpleName} childCount=${originalParent?.childCount}")
             linearLayout?.removeView(view)
-            originalParent?.removeView(linearLayout)
-            originalParent?.addView(view, ViewGroup.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.MATCH_PARENT
-            ))
-            log("+++ hideBannerView after: originalParent childCount=${originalParent?.childCount}")
-            val decorView = cordova.activity.window.decorView as? ViewGroup
-            log("+++ DecorView childCount=${decorView?.childCount}")
-            for (i in 0 until (decorView?.childCount ?: 0)) {
-                log("+++ DecorView child[$i]: ${decorView?.getChildAt(i)?.javaClass?.simpleName} visibility=${decorView?.getChildAt(i)?.visibility}")
-            }
+            cordova.activity.setContentView(view)
             linearLayout = null
             spacerLayout = null
         }
