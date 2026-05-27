@@ -136,6 +136,9 @@ internal class BannerAdsHelper(
 
         // trigger WebView viewport recalculation by re-dispatching WindowInsets
         linearLayout.post {
+            log("+++ linearLayout h=${linearLayout.height}")
+            log("+++ webView top=${cordovaWebView.view.top} bottom=${cordovaWebView.view.bottom}")
+            log("+++ bannerContainer top=${bannerContainerLayout?.top} bottom=${bannerContainerLayout?.bottom}")
             cordovaWebView.view.let { wv ->
                 val insets = cordova.activity.window.decorView.rootWindowInsets
                 if (insets != null) {
