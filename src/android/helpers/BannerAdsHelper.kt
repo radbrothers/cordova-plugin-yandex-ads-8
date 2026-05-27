@@ -134,19 +134,14 @@ internal class BannerAdsHelper(
 
         cordova.activity.setContentView(linearLayout)
 
-        // trigger WebView viewport recalculation via instant fullscreen toggle
+        // trigger WebView viewport recalculation by re-dispatching WindowInsets
         linearLayout.post {
-            cordovaWebView.loadUrl(
-                "javascript:setTimeout(function(){" +
-                "var el = document.documentElement;" +
-                "var req = el.requestFullscreen || el.webkitRequestFullscreen;" +
-                "var exit = document.exitFullscreen || document.webkitExitFullscreen;" +
-                "if(req && exit){" +
-                "req.call(el).then(function(){ exit.call(document); })" +
-                ".catch(function(e){ console.log('fs error: ' + e); });" +
-                "}" +
-                "}, 300);"
-            )
+            cordovaWebView.view.let { wv ->
+                val insets = cordova.activity.window.decorView.rootWindowInsets
+                if (insets != null) {
+                    wv.dispatchApplyWindowInsets(insets)
+                }
+            }
         }
     }
 
