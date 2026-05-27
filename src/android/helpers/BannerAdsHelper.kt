@@ -159,19 +159,10 @@ internal class BannerAdsHelper(
     }
 
     fun load(args: JSONArray?, callbackContext: CallbackContext) {
-        var paramsChanged = false
-        var prevOverlap = overlap
         args?.optJSONObject(0)?.let { options ->
-            val newPosition = options.optString(KEY_BANNER_POSITION, BANNER_POSITION_BOTTOM)
-            val newSize = options.optJSONObject(KEY_BANNER_SIZE) ?: JSONObject()
-            val newOverlap = options.optBoolean(KEY_BANNER_OVERLAP, false)
-            paramsChanged = newPosition != bannerPosition ||
-                newSize.optInt("width") != bannerSize.optInt("width") ||
-                newSize.optInt("height") != bannerSize.optInt("height") ||
-                newOverlap != overlap
-            bannerPosition = newPosition
-            bannerSize = newSize
-            overlap = newOverlap
+            bannerPosition = options.optString(KEY_BANNER_POSITION, BANNER_POSITION_BOTTOM)
+            bannerSize = options.optJSONObject(KEY_BANNER_SIZE) ?: JSONObject()
+            overlap = options.optBoolean(KEY_BANNER_OVERLAP, false)
         }
 
         val density = cordova.activity.resources.displayMetrics.density
@@ -179,11 +170,7 @@ internal class BannerAdsHelper(
         containerH = (bannerSize.optInt("height") * density).toInt()
 
         cordova.getActivity().runOnUiThread(Runnable {
-            if (!bannerShown || paramsChanged) {
-                hideBannerView(prevOverlap)
-            } else {
-                destroyBanner()
-            }
+            destroyBanner()
 
             mBannerAdView = BannerAdView(cordova.activity)
 
@@ -235,18 +222,18 @@ internal class BannerAdsHelper(
 
     fun hide(callbackContext: CallbackContext) {
         cordova.getActivity().runOnUiThread(Runnable {
-            hideBannerView(overlap)
+            hideBannerView()
             callbackContext.success()
         })
     }
 
-    private fun hideBannerView(wasOverlap: Boolean = overlap) {
+    private fun hideBannerView() {
         bannerShown = false
         bannerLoaded = false
 
         (bannerContainerLayout?.parent as? ViewGroup)?.removeView(bannerContainerLayout)
 
-        if (!wasOverlap) {
+        if (!overlap) {
             val view = cordovaWebView.view
             val linearLayout = view.parent as? LinearLayout
             if (linearLayout != null) {
