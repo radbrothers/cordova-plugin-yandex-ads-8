@@ -195,6 +195,23 @@ internal class BannerAdsHelper(
                 override fun onAdLoaded() {
                     bannerLoaded = true
                     emitWindowEvent(ConstantsEvents.EVENT_BANNER_DID_LOAD)
+                    log("+++ onAdLoaded: spacer top=${spacerView?.top} bottom=${spacerView?.bottom} visibility=${spacerView?.visibility}")
+                    log("+++ onAdLoaded: bannerContainer top=${bannerContainerLayout?.top} visibility=${bannerContainerLayout?.visibility}")
+                    if (bannerShown) {
+                        cordovaWebView.view.post {
+                            cordovaWebView.loadUrl(
+                                "javascript:setTimeout(function(){" +
+                                "var el = document.documentElement;" +
+                                "var req = el.requestFullscreen || el.webkitRequestFullscreen;" +
+                                "var exit = document.exitFullscreen || document.webkitExitFullscreen;" +
+                                "if(req && exit){" +
+                                "req.call(el).then(function(){ exit.call(document); })" +
+                                ".catch(function(e){ console.log('fs error: ' + e); });" +
+                                "}" +
+                                "}, 300);"
+                            )
+                        }
+                    }
                 }
 
                 override fun onAdFailedToLoad(error: AdRequestError) {
