@@ -247,6 +247,8 @@ internal class BannerAdsHelper(
                     ViewGroup.LayoutParams.MATCH_PARENT,
                     ViewGroup.LayoutParams.MATCH_PARENT
                 ))
+                contentFrame?.requestLayout()
+                view.requestLayout()
                 log("+++ hideBannerView after: contentFrame childCount=${contentFrame?.childCount}")
             }
         }
