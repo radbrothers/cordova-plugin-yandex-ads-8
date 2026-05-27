@@ -76,7 +76,10 @@ internal class BannerAdsHelper(
     }
 
     private fun showOverlap() {
-        val wvParent = cordovaWebView.view.parent as? ViewGroup ?: cordovaWebView as ViewGroup
+        // always add to the top-level content frame, not WebView's direct parent
+        val contentFrame = cordova.activity.findViewById<ViewGroup>(android.R.id.content)
+            ?: cordovaWebView.view.parent as? ViewGroup
+            ?: cordovaWebView as ViewGroup
 
         val gravity = when (bannerPosition) {
             BANNER_POSITION_TOP -> Gravity.TOP or Gravity.CENTER_HORIZONTAL
@@ -88,14 +91,14 @@ internal class BannerAdsHelper(
         val containerLp = FrameLayout.LayoutParams(containerW, containerH)
         containerLp.gravity = gravity
 
-        wvParent.addView(bannerContainerLayout, containerLp)
+        contentFrame.addView(bannerContainerLayout, containerLp)
         bannerContainerLayout?.bringToFront()
     }
 
     private fun showPush() {
         val view = cordovaWebView.view
-        // ContentFrameLayout is the direct parent of WebView
         val contentFrame = view.parent as? ViewGroup ?: return
+        log("+++ showPush: contentFrame=${contentFrame.javaClass.simpleName} childCount=${contentFrame.childCount}")
 
         // Remove WebView from ContentFrameLayout
         contentFrame.removeView(view)
