@@ -207,10 +207,14 @@ internal class BannerAdsHelper(
                     // if banner already shown — update container with new ad view
                     if (bannerShown) {
                         cordova.activity.runOnUiThread {
+                            log("+++ onAdLoaded update: container parent=${bannerContainerLayout?.parent?.javaClass?.simpleName}")
+                            log("+++ onAdLoaded update: container top=${bannerContainerLayout?.top} bottom=${bannerContainerLayout?.bottom}")
+                            log("+++ onAdLoaded update: container lp=${bannerContainerLayout?.layoutParams?.javaClass?.simpleName} w=${bannerContainerLayout?.layoutParams?.width} h=${bannerContainerLayout?.layoutParams?.height}")
                             bannerContainerLayout?.removeAllViews()
                             val adLayoutParams = RelativeLayout.LayoutParams(containerW, containerH)
                             adLayoutParams.addRule(RelativeLayout.CENTER_IN_PARENT)
                             bannerContainerLayout?.addView(mBannerAdView, adLayoutParams)
+                            log("+++ onAdLoaded update after: container top=${bannerContainerLayout?.top} bottom=${bannerContainerLayout?.bottom}")
                         }
                     }
                 }
