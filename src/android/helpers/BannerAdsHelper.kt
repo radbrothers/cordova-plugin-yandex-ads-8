@@ -1,6 +1,5 @@
 package io.luzh.cordova.plugin.helpers
 
-import android.R
 import android.view.Gravity
 import android.view.ViewGroup
 import android.widget.FrameLayout
@@ -76,7 +75,6 @@ internal class BannerAdsHelper(
     }
 
     private fun showOverlap() {
-        // always add to the top-level content frame, not WebView's direct parent
         val contentFrame = cordova.activity.findViewById<ViewGroup>(android.R.id.content)
             ?: cordovaWebView.view.parent as? ViewGroup
             ?: cordovaWebView as ViewGroup
@@ -97,13 +95,31 @@ internal class BannerAdsHelper(
 
     private fun showPush() {
         val view = cordovaWebView.view
-        val contentFrame = view.parent as? ViewGroup ?: return
-        log("+++ showPush: contentFrame=${contentFrame.javaClass.simpleName} childCount=${contentFrame.childCount}")
+        val wvParentView = view.parent as? ViewGroup
 
-        // Remove WebView from ContentFrameLayout
-        contentFrame.removeView(view)
+        // if LinearLayout already exists (from previous show), just add bannerContainerLayout
+        val existingLinear = view.parent as? LinearLayout
+        if (existingLinear != null) {
+            val bannerParams = if (isHorizontal) {
+                LinearLayout.LayoutParams(containerW, LinearLayout.LayoutParams.MATCH_PARENT).also {
+                    it.gravity = Gravity.CENTER_VERTICAL
+                }
+            } else {
+                LinearLayout.LayoutParams(containerW, containerH).also {
+                    it.gravity = Gravity.CENTER_HORIZONTAL
+                }
+            }
+            if (bannerPosition == BANNER_POSITION_TOP || bannerPosition == BANNER_POSITION_LEFT) {
+                existingLinear.addView(bannerContainerLayout, 0, bannerParams)
+            } else {
+                existingLinear.addView(bannerContainerLayout, bannerParams)
+            }
+            return
+        }
 
-        // Create LinearLayout and add to ContentFrameLayout (not via setContentView)
+        if (wvParentView == null) return
+        wvParentView.removeView(view)
+
         val linearLayout = LinearLayout(cordova.activity)
         linearLayout.setBackgroundColor(0xFF000000.toInt())
 
@@ -133,8 +149,8 @@ internal class BannerAdsHelper(
             }
         }
 
-        // Add linearLayout directly to ContentFrameLayout with MATCH_PARENT
-        contentFrame.addView(linearLayout, ViewGroup.LayoutParams(
+        // Add to original parent WITHOUT setContentView
+        wvParentView.addView(linearLayout, ViewGroup.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.MATCH_PARENT
         ))
@@ -231,27 +247,10 @@ internal class BannerAdsHelper(
         bannerShown = false
         bannerLoaded = false
 
-        log("+++ hideBannerView: overlap=$overlap bannerContainer.parent=${bannerContainerLayout?.parent?.javaClass?.simpleName}")
-        (bannerContainerLayout?.parent as? ViewGroup)?.removeView(bannerContainerLayout)
-
-        if (!overlap) {
-            val view = cordovaWebView.view
-            val linearLayout = view.parent as? LinearLayout
-            log("+++ hideBannerView: webView.parent=${view.parent?.javaClass?.simpleName}")
-            if (linearLayout != null) {
-                val contentFrame = linearLayout.parent as? ViewGroup
-                log("+++ hideBannerView: linearLayout.parent=${contentFrame?.javaClass?.simpleName} childCount=${contentFrame?.childCount}")
-                linearLayout.removeView(view)
-                contentFrame?.removeView(linearLayout)
-                contentFrame?.addView(view, ViewGroup.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.MATCH_PARENT
-                ))
-                contentFrame?.requestLayout()
-                view.requestLayout()
-                log("+++ hideBannerView after: contentFrame childCount=${contentFrame?.childCount}")
-            }
-        }
+        // remove bannerContainerLayout from its parent (LinearLayout or ContentFrameLayout)
+        // WebView stays in LinearLayout and expands to fill the space
+        val parentLayout = bannerContainerLayout?.parent as? ViewGroup
+        parentLayout?.removeView(bannerContainerLayout)
 
         bannerContainerLayout?.removeView(mBannerAdView)
         bannerContainerLayout = null
