@@ -194,9 +194,9 @@ internal class BannerAdsHelper(
                     emitWindowEvent(ConstantsEvents.EVENT_BANNER_DID_LOAD)
                     if (bannerShown) {
                         cordova.activity.runOnUiThread {
+                            bannerContainerLayout?.removeAllViews()
                             val adLayoutParams = RelativeLayout.LayoutParams(containerW, containerH)
                             adLayoutParams.addRule(RelativeLayout.CENTER_IN_PARENT)
-                            (mBannerAdView?.parent as? ViewGroup)?.removeView(mBannerAdView)
                             bannerContainerLayout?.addView(mBannerAdView, adLayoutParams)
                         }
                     }
@@ -231,19 +231,23 @@ internal class BannerAdsHelper(
         bannerShown = false
         bannerLoaded = false
 
+        log("+++ hideBannerView: overlap=$overlap bannerContainer.parent=${bannerContainerLayout?.parent?.javaClass?.simpleName}")
         (bannerContainerLayout?.parent as? ViewGroup)?.removeView(bannerContainerLayout)
 
         if (!overlap) {
             val view = cordovaWebView.view
             val linearLayout = view.parent as? LinearLayout
+            log("+++ hideBannerView: webView.parent=${view.parent?.javaClass?.simpleName}")
             if (linearLayout != null) {
                 val contentFrame = linearLayout.parent as? ViewGroup
+                log("+++ hideBannerView: linearLayout.parent=${contentFrame?.javaClass?.simpleName} childCount=${contentFrame?.childCount}")
                 linearLayout.removeView(view)
                 contentFrame?.removeView(linearLayout)
                 contentFrame?.addView(view, ViewGroup.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT,
                     ViewGroup.LayoutParams.MATCH_PARENT
                 ))
+                log("+++ hideBannerView after: contentFrame childCount=${contentFrame?.childCount}")
             }
         }
 
