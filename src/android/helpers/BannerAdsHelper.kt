@@ -84,6 +84,11 @@ internal class BannerAdsHelper(
             cordovaWebView.view.parent as? ViewGroup ?: cordovaWebView as ViewGroup
         }
 
+        log("+++ showBannerOverlay: wvParent=${wvParent.javaClass.simpleName} childCount=${wvParent.childCount}")
+        for (i in 0 until wvParent.childCount) {
+            log("+++ child[$i]: ${wvParent.getChildAt(i).javaClass.simpleName}")
+        }
+
         val gravity = when (bannerPosition) {
             BANNER_POSITION_TOP -> Gravity.TOP or Gravity.CENTER_HORIZONTAL
             BANNER_POSITION_LEFT -> Gravity.LEFT or Gravity.CENTER_VERTICAL
@@ -256,31 +261,31 @@ internal class BannerAdsHelper(
     }
 
     private fun hideBannerView() {
-        cordova.getActivity().runOnUiThread(Runnable {
-            bannerShown = false
-            bannerLoaded = false
+        bannerShown = false
+        bannerLoaded = false
 
-            // remove banner overlay
-            (bannerContainerLayout?.parent as? ViewGroup)?.removeView(bannerContainerLayout)
-            bannerContainerLayout?.removeView(mBannerAdView)
-            bannerContainerLayout = null
+        // remove banner overlay
+        (bannerContainerLayout?.parent as? ViewGroup)?.removeView(bannerContainerLayout)
+        bannerContainerLayout?.removeView(mBannerAdView)
+        bannerContainerLayout = null
 
-            // remove spacer and restore WebView to original parent
-            if (!overlap && linearLayout != null) {
-                val view = cordovaWebView.view
-                val originalParent = linearLayout?.parent as? ViewGroup
-                linearLayout?.removeView(view)
-                originalParent?.removeView(linearLayout)
-                originalParent?.addView(view, ViewGroup.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.MATCH_PARENT
-                ))
-                linearLayout = null
-                spacerLayout = null
-            }
+        // remove spacer and restore WebView to original parent
+        if (!overlap && linearLayout != null) {
+            val view = cordovaWebView.view
+            val originalParent = linearLayout?.parent as? ViewGroup
+            log("+++ hideBannerView: linearLayout.parent=${originalParent?.javaClass?.simpleName} childCount=${originalParent?.childCount}")
+            linearLayout?.removeView(view)
+            originalParent?.removeView(linearLayout)
+            originalParent?.addView(view, ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT
+            ))
+            log("+++ hideBannerView after: originalParent childCount=${originalParent?.childCount}")
+            linearLayout = null
+            spacerLayout = null
+        }
 
-            destroyBanner()
-        })
+        destroyBanner()
     }
 
     /**
