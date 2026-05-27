@@ -180,6 +180,8 @@ internal class BannerAdsHelper(
             if (!bannerShown || paramsChanged) {
                 hideBannerView()
             } else {
+                // remove from container BEFORE destroy to prevent SDK from triggering requestLayout
+                bannerContainerLayout?.removeAllViews()
                 destroyBanner()
             }
 
@@ -218,7 +220,6 @@ internal class BannerAdsHelper(
                                 }
                                 bannerContainerLayout?.layoutParams = lp
                             }
-                            bannerContainerLayout?.removeAllViews()
                             val adLayoutParams = RelativeLayout.LayoutParams(containerW, containerH)
                             adLayoutParams.addRule(RelativeLayout.CENTER_IN_PARENT)
                             bannerContainerLayout?.addView(mBannerAdView, adLayoutParams)
