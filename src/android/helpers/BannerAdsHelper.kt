@@ -76,9 +76,10 @@ internal class BannerAdsHelper(
      * In push mode spacer already holds the space, banner just overlays on top.
      */
     private fun showBannerOverlay() {
-        val contentFrame = cordova.activity.findViewById<ViewGroup>(android.R.id.content)
+        // add to DecorView to ensure banner is always above LinearLayout/ContentFrameLayout
+        val decorView = cordova.activity.window.decorView as? ViewGroup
             ?: cordovaWebView.view.parent as? ViewGroup
-            ?: cordovaWebView as ViewGroup
+            ?: return
 
         val gravity = when (bannerPosition) {
             BANNER_POSITION_TOP -> Gravity.TOP or Gravity.CENTER_HORIZONTAL
@@ -87,13 +88,10 @@ internal class BannerAdsHelper(
             else -> Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
         }
 
-        val containerLp = FrameLayout.LayoutParams(
-            containerW,
-            if (isHorizontal) ViewGroup.LayoutParams.MATCH_PARENT else containerH
-        )
+        val containerLp = FrameLayout.LayoutParams(containerW, containerH)
         containerLp.gravity = gravity
 
-        contentFrame.addView(bannerContainerLayout, containerLp)
+        decorView.addView(bannerContainerLayout, containerLp)
         bannerContainerLayout?.bringToFront()
     }
 
@@ -143,6 +141,20 @@ internal class BannerAdsHelper(
             ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.MATCH_PARENT
         ))
+
+        linearLayout.post {
+            cordovaWebView.loadUrl(
+                "javascript:setTimeout(function(){" +
+                "var el = document.documentElement;" +
+                "var req = el.requestFullscreen || el.webkitRequestFullscreen;" +
+                "var exit = document.exitFullscreen || document.webkitExitFullscreen;" +
+                "if(req && exit){" +
+                "req.call(el).then(function(){ exit.call(document); })" +
+                ".catch(function(e){ console.log('fs error: ' + e); });" +
+                "}" +
+                "}, 300);"
+            )
+        }
     }
 
     override fun load(callbackContext: CallbackContext) {
@@ -188,14 +200,6 @@ internal class BannerAdsHelper(
                 override fun onAdLoaded() {
                     bannerLoaded = true
                     emitWindowEvent(ConstantsEvents.EVENT_BANNER_DID_LOAD)
-                    if (bannerShown) {
-                        cordova.activity.runOnUiThread {
-                            bannerContainerLayout?.removeAllViews()
-                            val adLayoutParams = RelativeLayout.LayoutParams(containerW, containerH)
-                            adLayoutParams.addRule(RelativeLayout.CENTER_IN_PARENT)
-                            bannerContainerLayout?.addView(mBannerAdView, adLayoutParams)
-                        }
-                    }
                 }
 
                 override fun onAdFailedToLoad(error: AdRequestError) {
