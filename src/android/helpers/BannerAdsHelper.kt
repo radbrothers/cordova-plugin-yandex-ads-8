@@ -92,7 +92,6 @@ internal class BannerAdsHelper(
         containerLp.gravity = gravity
 
         decorView.addView(bannerContainerLayout, containerLp)
-        bannerContainerLayout?.bringToFront()
     }
 
     /**
