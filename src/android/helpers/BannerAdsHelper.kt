@@ -139,19 +139,6 @@ internal class BannerAdsHelper(
             log("+++ linearLayout h=${linearLayout.height}")
             log("+++ webView top=${cordovaWebView.view.top} bottom=${cordovaWebView.view.bottom}")
             log("+++ bannerContainer top=${bannerContainerLayout?.top} bottom=${bannerContainerLayout?.bottom}")
-
-            // layout is correct — now trigger viewport recalculation
-            cordovaWebView.loadUrl(
-                "javascript:setTimeout(function(){" +
-                "var el = document.documentElement;" +
-                "var req = el.requestFullscreen || el.webkitRequestFullscreen;" +
-                "var exit = document.exitFullscreen || document.webkitExitFullscreen;" +
-                "if(req && exit){" +
-                "req.call(el).then(function(){ exit.call(document); })" +
-                ".catch(function(e){ console.log('fs error: ' + e); });" +
-                "}" +
-                "}, 300);"
-            )
         }
     }
 
