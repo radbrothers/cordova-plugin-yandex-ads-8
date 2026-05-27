@@ -32,10 +32,11 @@ internal class BannerAdsHelper(
     blockId: String
 ) : BaseAdsHelper<Unit>(cordovaPlugin, cordovaWebView, blockId) {
     private var bannerContainerLayout: RelativeLayout? = null
+    private var spacerLayout: android.view.View? = null  // fixed spacer that pushes WebView
+    private var linearLayout: LinearLayout? = null       // holds WebView + spacer
     private var bannerLoaded: Boolean = false
     private var bannerShown: Boolean = false
     private var mBannerAdView: BannerAdView? = null
-    private var firstShow: Boolean = true
 
     // set during load()
     private var bannerPosition: String = BANNER_POSITION_BOTTOM
@@ -65,21 +66,23 @@ internal class BannerAdsHelper(
             adLayoutParams.addRule(RelativeLayout.CENTER_IN_PARENT)
             bannerContainerLayout?.addView(mBannerAdView, adLayoutParams)
 
-            if (overlap) {
-                showOverlap()
-            } else {
-                showPush()
-            }
+            showBannerOverlay()
 
             callbackContext.success()
         }
     }
 
     /**
-     * Overlay mode — banner floats over WebView using FrameLayout gravity
+     * Show banner as overlay — works for both overlap and push modes.
+     * In push mode the spacer already holds the space, so we just overlay the banner on top.
      */
-    private fun showOverlap() {
-        val wvParent = cordovaWebView.view.parent as? ViewGroup ?: cordovaWebView as ViewGroup
+    private fun showBannerOverlay() {
+        val wvParent = if (!overlap && linearLayout != null) {
+            // in push mode — add overlay to linearLayout's parent (ContentFrameLayout)
+            linearLayout?.parent as? ViewGroup ?: cordovaWebView.view.parent as? ViewGroup ?: return
+        } else {
+            cordovaWebView.view.parent as? ViewGroup ?: cordovaWebView as ViewGroup
+        }
 
         val gravity = when (bannerPosition) {
             BANNER_POSITION_TOP -> Gravity.TOP or Gravity.CENTER_HORIZONTAL
@@ -88,7 +91,10 @@ internal class BannerAdsHelper(
             else -> Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
         }
 
-        val containerLp = FrameLayout.LayoutParams(containerW, containerH)
+        val containerLp = FrameLayout.LayoutParams(
+            if (isHorizontal) containerW else containerW,
+            if (isHorizontal) ViewGroup.LayoutParams.MATCH_PARENT else containerH
+        )
         containerLp.gravity = gravity
 
         wvParent.addView(bannerContainerLayout, containerLp)
@@ -96,61 +102,63 @@ internal class BannerAdsHelper(
     }
 
     /**
-     * Push mode — banner pushes WebView using LinearLayout weight
+     * Create fixed spacer in LinearLayout to push WebView — called once on first load.
+     * Only used when overlap = false.
      */
-    private fun showPush() {
+    private fun createSpacerLayout() {
         val view = cordovaWebView.view
         val wvParentView = view.parent as? ViewGroup ?: return
 
         wvParentView.removeView(view)
 
-        val linearLayout = LinearLayout(cordova.activity)
-        linearLayout.setBackgroundColor(0xFF000000.toInt())
+        val ll = LinearLayout(cordova.activity)
+        ll.setBackgroundColor(0xFF000000.toInt())
+
+        val spacer = android.view.View(cordova.activity)
+        spacer.setBackgroundColor(0xFF000000.toInt())
+        spacerLayout = spacer
 
         if (isHorizontal) {
-            linearLayout.orientation = LinearLayout.HORIZONTAL
+            ll.orientation = LinearLayout.HORIZONTAL
             val webViewParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, 1.0f)
-            val bannerParams = LinearLayout.LayoutParams(containerW, LinearLayout.LayoutParams.MATCH_PARENT)
-            bannerParams.gravity = Gravity.CENTER_VERTICAL
+            val spacerParams = LinearLayout.LayoutParams(containerW, LinearLayout.LayoutParams.MATCH_PARENT)
             if (bannerPosition == BANNER_POSITION_LEFT) {
-                linearLayout.addView(bannerContainerLayout, bannerParams)
-                linearLayout.addView(view, webViewParams)
+                ll.addView(spacer, spacerParams)
+                ll.addView(view, webViewParams)
             } else {
-                linearLayout.addView(view, webViewParams)
-                linearLayout.addView(bannerContainerLayout, bannerParams)
+                ll.addView(view, webViewParams)
+                ll.addView(spacer, spacerParams)
             }
         } else {
-            linearLayout.orientation = LinearLayout.VERTICAL
+            ll.orientation = LinearLayout.VERTICAL
             val webViewParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1.0f)
-            val bannerParams = LinearLayout.LayoutParams(containerW, containerH)
-            bannerParams.gravity = Gravity.CENTER_HORIZONTAL
+            val spacerParams = LinearLayout.LayoutParams(containerW, containerH)
+            spacerParams.gravity = Gravity.CENTER_HORIZONTAL
             if (bannerPosition == BANNER_POSITION_TOP) {
-                linearLayout.addView(bannerContainerLayout, bannerParams)
-                linearLayout.addView(view, webViewParams)
+                ll.addView(spacer, spacerParams)
+                ll.addView(view, webViewParams)
             } else {
-                linearLayout.addView(view, webViewParams)
-                linearLayout.addView(bannerContainerLayout, bannerParams)
+                ll.addView(view, webViewParams)
+                ll.addView(spacer, spacerParams)
             }
         }
 
-        cordova.activity.setContentView(linearLayout)
+        linearLayout = ll
+        cordova.activity.setContentView(ll)
 
-        // trigger WebView viewport recalculation via instant fullscreen toggle (first show only)
-        if (firstShow) {
-            firstShow = false
-            linearLayout.post {
-                cordovaWebView.loadUrl(
-                    "javascript:setTimeout(function(){" +
-                    "var el = document.documentElement;" +
-                    "var req = el.requestFullscreen || el.webkitRequestFullscreen;" +
-                    "var exit = document.exitFullscreen || document.webkitExitFullscreen;" +
-                    "if(req && exit){" +
-                    "req.call(el).then(function(){ exit.call(document); })" +
-                    ".catch(function(e){ console.log('fs error: ' + e); });" +
-                    "}" +
-                    "}, 300);"
-                )
-            }
+        // trigger WebView viewport recalculation via instant fullscreen toggle
+        ll.post {
+            cordovaWebView.loadUrl(
+                "javascript:setTimeout(function(){" +
+                "var el = document.documentElement;" +
+                "var req = el.requestFullscreen || el.webkitRequestFullscreen;" +
+                "var exit = document.exitFullscreen || document.webkitExitFullscreen;" +
+                "if(req && exit){" +
+                "req.call(el).then(function(){ exit.call(document); })" +
+                ".catch(function(e){ console.log('fs error: ' + e); });" +
+                "}" +
+                "}, 300);"
+            )
         }
     }
 
@@ -178,8 +186,23 @@ internal class BannerAdsHelper(
         containerH = (bannerSize.optInt("height") * density).toInt()
 
         cordova.getActivity().runOnUiThread(Runnable {
-            val wasShown = bannerShown
-            hideBannerView()
+            // full reset if params changed or first load
+            if (paramsChanged || spacerLayout == null && !overlap) {
+                hideBannerView()
+            } else {
+                // just remove old banner overlay, keep spacer intact
+                (bannerContainerLayout?.parent as? ViewGroup)?.removeView(bannerContainerLayout)
+                bannerContainerLayout?.removeView(mBannerAdView)
+                bannerContainerLayout = null
+                destroyBanner()
+                bannerShown = false
+                bannerLoaded = false
+            }
+
+            // create spacer on first push-mode load
+            if (!overlap && spacerLayout == null) {
+                createSpacerLayout()
+            }
 
             mBannerAdView = BannerAdView(cordova.activity)
 
@@ -202,14 +225,6 @@ internal class BannerAdsHelper(
                 override fun onAdLoaded() {
                     bannerLoaded = true
                     emitWindowEvent(ConstantsEvents.EVENT_BANNER_DID_LOAD)
-                    // auto-show if banner was shown before this load
-                    if (wasShown) {
-                        cordova.activity.runOnUiThread {
-                            show(object : CallbackContext("", null) {
-                                override fun success() {}
-                            })
-                        }
-                    }
                 }
 
                 override fun onAdFailedToLoad(error: AdRequestError) {
@@ -244,26 +259,25 @@ internal class BannerAdsHelper(
         cordova.getActivity().runOnUiThread(Runnable {
             bannerShown = false
             bannerLoaded = false
-            firstShow = true
 
+            // remove banner overlay
             (bannerContainerLayout?.parent as? ViewGroup)?.removeView(bannerContainerLayout)
-
-            if (!overlap) {
-                val view = cordovaWebView.view
-                val linearLayout = view.parent as? LinearLayout
-                if (linearLayout != null) {
-                    val originalParent = linearLayout.parent as? ViewGroup
-                    linearLayout.removeView(view)
-                    originalParent?.removeView(linearLayout)
-                    originalParent?.addView(view, ViewGroup.LayoutParams(
-                        ViewGroup.LayoutParams.MATCH_PARENT,
-                        ViewGroup.LayoutParams.MATCH_PARENT
-                    ))
-                }
-            }
-
             bannerContainerLayout?.removeView(mBannerAdView)
             bannerContainerLayout = null
+
+            // remove spacer and restore WebView to original parent
+            if (!overlap && linearLayout != null) {
+                val view = cordovaWebView.view
+                val originalParent = linearLayout?.parent as? ViewGroup
+                linearLayout?.removeView(view)
+                originalParent?.removeView(linearLayout)
+                originalParent?.addView(view, ViewGroup.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.MATCH_PARENT
+                ))
+                linearLayout = null
+                spacerLayout = null
+            }
 
             destroyBanner()
         })
