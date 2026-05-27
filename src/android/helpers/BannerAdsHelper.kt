@@ -207,14 +207,21 @@ internal class BannerAdsHelper(
                     // if banner already shown — update container with new ad view
                     if (bannerShown) {
                         cordova.activity.runOnUiThread {
-                            log("+++ onAdLoaded update: container parent=${bannerContainerLayout?.parent?.javaClass?.simpleName}")
-                            log("+++ onAdLoaded update: container top=${bannerContainerLayout?.top} bottom=${bannerContainerLayout?.bottom}")
-                            log("+++ onAdLoaded update: container lp=${bannerContainerLayout?.layoutParams?.javaClass?.simpleName} w=${bannerContainerLayout?.layoutParams?.width} h=${bannerContainerLayout?.layoutParams?.height}")
+                            // restore correct layoutParams — SDK may have reset them
+                            if (!overlap) {
+                                val lp = if (isHorizontal) {
+                                    LinearLayout.LayoutParams(containerW, LinearLayout.LayoutParams.MATCH_PARENT)
+                                } else {
+                                    LinearLayout.LayoutParams(containerW, containerH).also {
+                                        it.gravity = Gravity.CENTER_HORIZONTAL
+                                    }
+                                }
+                                bannerContainerLayout?.layoutParams = lp
+                            }
                             bannerContainerLayout?.removeAllViews()
                             val adLayoutParams = RelativeLayout.LayoutParams(containerW, containerH)
                             adLayoutParams.addRule(RelativeLayout.CENTER_IN_PARENT)
                             bannerContainerLayout?.addView(mBannerAdView, adLayoutParams)
-                            log("+++ onAdLoaded update after: container top=${bannerContainerLayout?.top} bottom=${bannerContainerLayout?.bottom}")
                         }
                     }
                 }
@@ -258,18 +265,14 @@ internal class BannerAdsHelper(
                 // push mode — restore WebView back to its original parent (ContentFrameLayout)
                 val view = cordovaWebView.view
                 val linearLayout = view.parent as? LinearLayout
-                log("+++ hide: linearLayout=${linearLayout?.javaClass?.simpleName}")
-                log("+++ hide: linearLayout.parent=${linearLayout?.parent?.javaClass?.simpleName}")
                 if (linearLayout != null) {
                     val originalParent = linearLayout.parent as? ViewGroup
-                    log("+++ hide: originalParent=${originalParent?.javaClass?.simpleName} childCount=${originalParent?.childCount}")
                     linearLayout.removeView(view)
                     originalParent?.removeView(linearLayout)
                     originalParent?.addView(view, ViewGroup.LayoutParams(
                         ViewGroup.LayoutParams.MATCH_PARENT,
                         ViewGroup.LayoutParams.MATCH_PARENT
                     ))
-                    log("+++ hide: after restore originalParent childCount=${originalParent?.childCount}")
                 }
             }
 
