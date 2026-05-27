@@ -134,11 +134,19 @@ internal class BannerAdsHelper(
 
         cordova.activity.setContentView(linearLayout)
 
-        // trigger WebView viewport recalculation by re-dispatching WindowInsets
+        // trigger WebView viewport recalculation via instant fullscreen toggle
         linearLayout.post {
-            log("+++ linearLayout h=${linearLayout.height}")
-            log("+++ webView top=${cordovaWebView.view.top} bottom=${cordovaWebView.view.bottom}")
-            log("+++ bannerContainer top=${bannerContainerLayout?.top} bottom=${bannerContainerLayout?.bottom}")
+            cordovaWebView.loadUrl(
+                "javascript:setTimeout(function(){" +
+                "var el = document.documentElement;" +
+                "var req = el.requestFullscreen || el.webkitRequestFullscreen;" +
+                "var exit = document.exitFullscreen || document.webkitExitFullscreen;" +
+                "if(req && exit){" +
+                "req.call(el).then(function(){ exit.call(document); })" +
+                ".catch(function(e){ console.log('fs error: ' + e); });" +
+                "}" +
+                "}, 300);"
+            )
         }
     }
 
@@ -246,14 +254,18 @@ internal class BannerAdsHelper(
                 // push mode — restore WebView back to its original parent (ContentFrameLayout)
                 val view = cordovaWebView.view
                 val linearLayout = view.parent as? LinearLayout
+                log("+++ hide: linearLayout=${linearLayout?.javaClass?.simpleName}")
+                log("+++ hide: linearLayout.parent=${linearLayout?.parent?.javaClass?.simpleName}")
                 if (linearLayout != null) {
                     val originalParent = linearLayout.parent as? ViewGroup
+                    log("+++ hide: originalParent=${originalParent?.javaClass?.simpleName} childCount=${originalParent?.childCount}")
                     linearLayout.removeView(view)
                     originalParent?.removeView(linearLayout)
                     originalParent?.addView(view, ViewGroup.LayoutParams(
                         ViewGroup.LayoutParams.MATCH_PARENT,
                         ViewGroup.LayoutParams.MATCH_PARENT
                     ))
+                    log("+++ hide: after restore originalParent childCount=${originalParent?.childCount}")
                 }
             }
 
