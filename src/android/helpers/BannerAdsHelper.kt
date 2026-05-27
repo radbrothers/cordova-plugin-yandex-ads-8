@@ -160,6 +160,7 @@ internal class BannerAdsHelper(
 
     fun load(args: JSONArray?, callbackContext: CallbackContext) {
         var paramsChanged = false
+        var prevOverlap = overlap
         args?.optJSONObject(0)?.let { options ->
             val newPosition = options.optString(KEY_BANNER_POSITION, BANNER_POSITION_BOTTOM)
             val newSize = options.optJSONObject(KEY_BANNER_SIZE) ?: JSONObject()
@@ -179,7 +180,7 @@ internal class BannerAdsHelper(
 
         cordova.getActivity().runOnUiThread(Runnable {
             if (!bannerShown || paramsChanged) {
-                hideBannerView()
+                hideBannerView(prevOverlap)
             } else {
                 destroyBanner()
             }
@@ -234,26 +235,24 @@ internal class BannerAdsHelper(
 
     fun hide(callbackContext: CallbackContext) {
         cordova.getActivity().runOnUiThread(Runnable {
-            hideBannerView()
+            hideBannerView(overlap)
             callbackContext.success()
         })
     }
 
-    private fun hideBannerView() {
+    private fun hideBannerView(wasOverlap: Boolean = overlap) {
         bannerShown = false
         bannerLoaded = false
 
         (bannerContainerLayout?.parent as? ViewGroup)?.removeView(bannerContainerLayout)
 
-        if (!overlap) {
+        if (!wasOverlap) {
             val view = cordovaWebView.view
             val linearLayout = view.parent as? LinearLayout
             if (linearLayout != null) {
-                // ContentFrameLayout is linearLayout's parent
                 val contentFrame = linearLayout.parent as? ViewGroup
                 linearLayout.removeView(view)
                 contentFrame?.removeView(linearLayout)
-                // Restore WebView directly into ContentFrameLayout
                 contentFrame?.addView(view, ViewGroup.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT,
                     ViewGroup.LayoutParams.MATCH_PARENT
