@@ -35,6 +35,7 @@ internal class BannerAdsHelper(
     private var bannerLoaded: Boolean = false
     private var bannerShown: Boolean = false
     private var mBannerAdView: BannerAdView? = null
+    private var firstShow: Boolean = true
 
     // set during load()
     private var bannerPosition: String = BANNER_POSITION_BOTTOM
@@ -134,19 +135,22 @@ internal class BannerAdsHelper(
 
         cordova.activity.setContentView(linearLayout)
 
-        // trigger WebView viewport recalculation via instant fullscreen toggle
-        linearLayout.post {
-            cordovaWebView.loadUrl(
-                "javascript:setTimeout(function(){" +
-                "var el = document.documentElement;" +
-                "var req = el.requestFullscreen || el.webkitRequestFullscreen;" +
-                "var exit = document.exitFullscreen || document.webkitExitFullscreen;" +
-                "if(req && exit){" +
-                "req.call(el).then(function(){ exit.call(document); })" +
-                ".catch(function(e){ console.log('fs error: ' + e); });" +
-                "}" +
-                "}, 300);"
-            )
+        // trigger WebView viewport recalculation via instant fullscreen toggle (first show only)
+        if (firstShow) {
+            firstShow = false
+            linearLayout.post {
+                cordovaWebView.loadUrl(
+                    "javascript:setTimeout(function(){" +
+                    "var el = document.documentElement;" +
+                    "var req = el.requestFullscreen || el.webkitRequestFullscreen;" +
+                    "var exit = document.exitFullscreen || document.webkitExitFullscreen;" +
+                    "if(req && exit){" +
+                    "req.call(el).then(function(){ exit.call(document); })" +
+                    ".catch(function(e){ console.log('fs error: ' + e); });" +
+                    "}" +
+                    "}, 300);"
+                )
+            }
         }
     }
 
@@ -174,11 +178,8 @@ internal class BannerAdsHelper(
         containerH = (bannerSize.optInt("height") * density).toInt()
 
         cordova.getActivity().runOnUiThread(Runnable {
-            if (!bannerShown || paramsChanged) {
-                hideBannerView()
-            } else {
-                destroyBanner()
-            }
+            val wasShown = bannerShown
+            hideBannerView()
 
             mBannerAdView = BannerAdView(cordova.activity)
 
@@ -201,12 +202,12 @@ internal class BannerAdsHelper(
                 override fun onAdLoaded() {
                     bannerLoaded = true
                     emitWindowEvent(ConstantsEvents.EVENT_BANNER_DID_LOAD)
-                    if (bannerShown) {
+                    // auto-show if banner was shown before this load
+                    if (wasShown) {
                         cordova.activity.runOnUiThread {
-                            val adLayoutParams = RelativeLayout.LayoutParams(containerW, containerH)
-                            adLayoutParams.addRule(RelativeLayout.CENTER_IN_PARENT)
-                            (mBannerAdView?.parent as? ViewGroup)?.removeView(mBannerAdView)
-                            bannerContainerLayout?.addView(mBannerAdView, adLayoutParams)
+                            show(object : CallbackContext("", null) {
+                                override fun success() {}
+                            })
                         }
                     }
                 }
@@ -243,6 +244,7 @@ internal class BannerAdsHelper(
         cordova.getActivity().runOnUiThread(Runnable {
             bannerShown = false
             bannerLoaded = false
+            firstShow = true
 
             (bannerContainerLayout?.parent as? ViewGroup)?.removeView(bannerContainerLayout)
 
