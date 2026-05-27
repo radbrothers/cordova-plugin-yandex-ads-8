@@ -78,8 +78,8 @@ internal class BannerAdsHelper(
      */
     private fun showBannerOverlay() {
         val wvParent = if (!overlap && linearLayout != null) {
-            // in push mode — add overlay to linearLayout's parent (ContentFrameLayout)
-            linearLayout?.parent as? ViewGroup ?: cordovaWebView.view.parent as? ViewGroup ?: return
+            // in push mode — add to DecorView to ensure banner is above linearLayout
+            cordova.activity.window.decorView as? ViewGroup ?: return
         } else {
             cordovaWebView.view.parent as? ViewGroup ?: cordovaWebView as ViewGroup
         }
@@ -265,6 +265,7 @@ internal class BannerAdsHelper(
         bannerLoaded = false
 
         // remove banner overlay
+        log("+++ hideBannerView: bannerContainer parent=${bannerContainerLayout?.parent?.javaClass?.simpleName}")
         (bannerContainerLayout?.parent as? ViewGroup)?.removeView(bannerContainerLayout)
         bannerContainerLayout?.removeView(mBannerAdView)
         bannerContainerLayout = null
