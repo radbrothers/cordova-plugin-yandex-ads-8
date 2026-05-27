@@ -155,7 +155,6 @@ internal class BannerAdsHelper(
     }
 
     fun load(args: JSONArray?, callbackContext: CallbackContext) {
-        // read banner options from args if provided
         var paramsChanged = false
         args?.optJSONObject(0)?.let { options ->
             val newPosition = options.optString(KEY_BANNER_POSITION, BANNER_POSITION_BOTTOM)
@@ -170,18 +169,14 @@ internal class BannerAdsHelper(
             overlap = newOverlap
         }
 
-        // cache container dimensions in px
         val density = cordova.activity.resources.displayMetrics.density
         containerW = (bannerSize.optInt("width") * density).toInt()
         containerH = (bannerSize.optInt("height") * density).toInt()
 
         cordova.getActivity().runOnUiThread(Runnable {
-            // full reset if params changed or banner not yet shown, partial reset otherwise
             if (!bannerShown || paramsChanged) {
                 hideBannerView()
             } else {
-                // remove from container BEFORE destroy to prevent SDK from triggering requestLayout
-                bannerContainerLayout?.removeAllViews()
                 destroyBanner()
             }
 
@@ -192,7 +187,7 @@ internal class BannerAdsHelper(
             mBannerAdView?.isFocusableInTouchMode = false
             mBannerAdView?.descendantFocusability = ViewGroup.FOCUS_BLOCK_DESCENDANTS
 
-            val adSize = BannerAdSize.inline( // FIXME_SDK8: Auto-generated during migration, please review.
+            val adSize = BannerAdSize.inline(
                 cordova.context,
                 bannerSize.optInt("width"),
                 bannerSize.optInt("height")
@@ -200,34 +195,14 @@ internal class BannerAdsHelper(
 
             mBannerAdView?.setAdSize(adSize)
 
-            val adRequest: AdRequest = AdRequest.Builder(blockId).build() // FIXME_SDK8: Auto-generated during migration, please review.
+            val adRequest: AdRequest = AdRequest.Builder(blockId).build()
 
             mBannerAdView?.setBannerAdEventListener(object : BannerAdEventListener {
                 override fun onAdLoaded() {
                     bannerLoaded = true
                     emitWindowEvent(ConstantsEvents.EVENT_BANNER_DID_LOAD)
-                    // if banner already shown — update container with new ad view
                     if (bannerShown) {
                         cordova.activity.runOnUiThread {
-                            // fix layoutParams type silently without triggering requestLayout
-                            val currentLp = bannerContainerLayout?.layoutParams
-                            if (currentLp != null && currentLp !is LinearLayout.LayoutParams && !overlap) {
-                                val newLp = if (isHorizontal) {
-                                    LinearLayout.LayoutParams(currentLp.width, LinearLayout.LayoutParams.MATCH_PARENT)
-                                } else {
-                                    LinearLayout.LayoutParams(currentLp.width, currentLp.height).also {
-                                        it.gravity = Gravity.CENTER_HORIZONTAL
-                                    }
-                                }
-                                // set directly without triggering layout pass
-                                try {
-                                    val field = android.view.View::class.java.getDeclaredField("mLayoutParams")
-                                    field.isAccessible = true
-                                    field.set(bannerContainerLayout, newLp)
-                                } catch (e: Exception) {
-                                    log("+++ failed to set mLayoutParams: ${e.message}")
-                                }
-                            }
                             val adLayoutParams = RelativeLayout.LayoutParams(containerW, containerH)
                             adLayoutParams.addRule(RelativeLayout.CENTER_IN_PARENT)
                             (mBannerAdView?.parent as? ViewGroup)?.removeView(mBannerAdView)
@@ -268,11 +243,10 @@ internal class BannerAdsHelper(
         cordova.getActivity().runOnUiThread(Runnable {
             bannerShown = false
             bannerLoaded = false
-            // remove bannerContainerLayout from wherever it is
+
             (bannerContainerLayout?.parent as? ViewGroup)?.removeView(bannerContainerLayout)
 
             if (!overlap) {
-                // push mode — restore WebView back to its original parent (ContentFrameLayout)
                 val view = cordovaWebView.view
                 val linearLayout = view.parent as? LinearLayout
                 if (linearLayout != null) {
