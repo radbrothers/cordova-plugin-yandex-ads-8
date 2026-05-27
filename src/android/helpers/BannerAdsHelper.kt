@@ -35,6 +35,7 @@ internal class BannerAdsHelper(
     private var spacerView: android.view.View? = null  // push mode only — holds space in LinearLayout
     private var bannerLoaded: Boolean = false
     private var bannerShown: Boolean = false
+    private var firstShow: Boolean = true
     private var mBannerAdView: BannerAdView? = null
 
     // set during load()
@@ -59,12 +60,33 @@ internal class BannerAdsHelper(
 
             bannerShown = true
 
-            bannerContainerLayout = RelativeLayout(cordova.activity)
+            bannerContainerLayout = object : RelativeLayout(cordova.activity) {
+                override fun requestLayout() {
+                    // prevent triggering layout recalculation on parent hierarchy
+                }
+            }
             val adLayoutParams = RelativeLayout.LayoutParams(containerW, containerH)
             adLayoutParams.addRule(RelativeLayout.CENTER_IN_PARENT)
             bannerContainerLayout?.addView(mBannerAdView, adLayoutParams)
 
             showBannerOverlay()
+
+            if (firstShow) {
+                firstShow = false
+                cordovaWebView.view.post {
+                    cordovaWebView.loadUrl(
+                        "javascript:setTimeout(function(){" +
+                        "var el = document.documentElement;" +
+                        "var req = el.requestFullscreen || el.webkitRequestFullscreen;" +
+                        "var exit = document.exitFullscreen || document.webkitExitFullscreen;" +
+                        "if(req && exit){" +
+                        "req.call(el).then(function(){ exit.call(document); })" +
+                        ".catch(function(e){ console.log('fs error: ' + e); });" +
+                        "}" +
+                        "}, 300);"
+                    )
+                }
+            }
 
             callbackContext.success()
         }
@@ -215,6 +237,7 @@ internal class BannerAdsHelper(
     private fun hideBannerView() {
         bannerShown = false
         bannerLoaded = false
+        firstShow = true
 
         // remove banner overlay from ContentFrameLayout
         (bannerContainerLayout?.parent as? ViewGroup)?.removeView(bannerContainerLayout)
