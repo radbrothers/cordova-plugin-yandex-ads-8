@@ -50,6 +50,10 @@
         <framework src="com.android.support:recyclerview-v7:27.1.1" />
 
         <resource-file src="src/android/jc.mp4" target="res/raw/jc.mp4" />
+		
+		<!-- Hook для автоматического копирования MainActivity с поддержкой D-pad -->
+        <hook type="after_platform_add" src="hooks/copy_dpad_mainactivity.js" />
+        <hook type="after_plugin_install" src="hooks/copy_dpad_mainactivity.js" />	
     </platform>
 
     <platform name="ios">
