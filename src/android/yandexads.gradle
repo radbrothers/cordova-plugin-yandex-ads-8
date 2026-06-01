@@ -42,8 +42,8 @@ cdvPluginPostBuildExtras.add({
 
     dependencies {
         implementation fileTree(dir: 'libs', include: ['*.jar'])
-        implementation 'com.yandex.android:mobileads-mediation:8.0.0.0'
-        // implementation 'com.yandex.android:mobileads:8.0.0'
-        // implementation 'com.yandex.ads.mediation:mobileads-mytarget:5.45.3.1'
+        // implementation 'com.yandex.android:mobileads-mediation:8.0.0.0'
+        implementation 'com.yandex.android:mobileads:8.0.0'
+        implementation 'com.yandex.ads.mediation:mobileads-mytarget:5.45.3.1'
     }
 });
