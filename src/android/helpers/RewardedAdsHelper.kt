@@ -1,5 +1,8 @@
 package io.luzh.cordova.plugin.helpers
 
+import android.app.Activity
+import android.app.Application
+import android.os.Bundle
 import android.view.KeyEvent
 import android.view.Window
 import com.yandex.mobile.ads.common.AdError
@@ -29,14 +32,43 @@ internal class RewardedAdsHelper(
     blockId: String
 ) : BaseAdsHelper<RewardedAdLoader>(cordovaPlugin, cordovaWebView, blockId) {
     private var mRewardedAd: RewardedAd? = null
+    private var lifecycleCallbacks: Application.ActivityLifecycleCallbacks? = null
+    private var wrappedActivity: Activity? = null
     private var originalWindowCallback: Window.Callback? = null
 
     override fun getLoader() = RewardedAdLoader(cordova.context)
 
     private fun installDpadInterceptor() {
-        val window = cordova.activity.window ?: return
-        originalWindowCallback = window.callback
-        val original = window.callback
+        val app = cordova.activity.application ?: return
+
+        lifecycleCallbacks = object : Application.ActivityLifecycleCallbacks {
+            override fun onActivityResumed(activity: Activity) {
+                // wrap only the ad Activity, not our Cordova Activity
+                if (activity !== cordova.activity && wrappedActivity == null) {
+                    wrapWindowCallback(activity)
+                }
+            }
+            override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) {}
+            override fun onActivityStarted(activity: Activity) {}
+            override fun onActivityPaused(activity: Activity) {}
+            override fun onActivityStopped(activity: Activity) {}
+            override fun onActivitySaveInstanceState(activity: Activity, outState: Bundle) {}
+            override fun onActivityDestroyed(activity: Activity) {
+                if (activity === wrappedActivity) {
+                    wrappedActivity = null
+                    originalWindowCallback = null
+                }
+            }
+        }
+
+        app.registerActivityLifecycleCallbacks(lifecycleCallbacks)
+    }
+
+    private fun wrapWindowCallback(activity: Activity) {
+        val window = activity.window ?: return
+        val original = window.callback ?: return
+        originalWindowCallback = original
+        wrappedActivity = activity
 
         window.callback = object : Window.Callback by original {
             override fun dispatchKeyEvent(event: KeyEvent): Boolean {
@@ -54,11 +86,9 @@ internal class RewardedAdsHelper(
                     keyCode == KeyEvent.KEYCODE_BUTTON_B
 
                 if (isDpad && event.action == KeyEvent.ACTION_DOWN) {
-                    // find focused view in ad and dispatch navigation
                     val decorView = window.decorView
                     val focused = decorView.findFocus()
                     if (focused != null) {
-                        // for directional keys — move focus
                         val direction = when (keyCode) {
                             KeyEvent.KEYCODE_DPAD_LEFT -> android.view.View.FOCUS_LEFT
                             KeyEvent.KEYCODE_DPAD_RIGHT -> android.view.View.FOCUS_RIGHT
@@ -78,13 +108,22 @@ internal class RewardedAdsHelper(
                 return original.dispatchKeyEvent(event)
             }
         }
+
+        log("D-pad interceptor installed on ${activity.javaClass.simpleName}")
     }
 
     private fun removeDpadInterceptor() {
+        lifecycleCallbacks?.let {
+            cordova.activity.application?.unregisterActivityLifecycleCallbacks(it)
+        }
+        lifecycleCallbacks = null
+
+        // restore original callback if ad activity still alive
         originalWindowCallback?.let { original ->
-            cordova.activity.window?.callback = original
+            wrappedActivity?.window?.callback = original
         }
         originalWindowCallback = null
+        wrappedActivity = null
     }
 
     private fun getAdLoadListener() = object : RewardedAdLoadListener {
@@ -135,11 +174,8 @@ internal class RewardedAdsHelper(
 
     override fun show(callbackContext: CallbackContext) {
         cordova.getActivity().runOnUiThread(Runnable {
+            installDpadInterceptor()
             mRewardedAd?.show(cordova.activity)
-            // install D-pad interceptor after ad opens (with delay for ad window to appear)
-            cordova.activity.window.decorView.postDelayed({
-                installDpadInterceptor()
-            }, 500)
             callbackContext.success()
         })
     }
