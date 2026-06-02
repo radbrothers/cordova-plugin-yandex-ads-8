@@ -109,7 +109,28 @@ internal class RewardedAdsHelper(
             }
         }
 
+        // make all clickable views focusable and request focus on the first one
+        window.decorView.postDelayed({
+            val focusables = mutableListOf<android.view.View>()
+            makeClickableViewsFocusable(window.decorView, focusables)
+            log("D-pad: made ${focusables.size} views focusable in ${activity.javaClass.simpleName}")
+            focusables.firstOrNull()?.requestFocus()
+        }, 500)
+
         log("D-pad interceptor installed on ${activity.javaClass.simpleName}")
+    }
+
+    private fun makeClickableViewsFocusable(view: android.view.View, focusables: MutableList<android.view.View>) {
+        if (view.isClickable && view.visibility == android.view.View.VISIBLE) {
+            view.isFocusable = true
+            view.isFocusableInTouchMode = true
+            focusables.add(view)
+        }
+        if (view is android.view.ViewGroup) {
+            for (i in 0 until view.childCount) {
+                makeClickableViewsFocusable(view.getChildAt(i), focusables)
+            }
+        }
     }
 
     private fun removeDpadInterceptor() {
