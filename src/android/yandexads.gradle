@@ -52,7 +52,6 @@ cdvPluginPostBuildExtras.add({
         implementation 'com.yandex.ads.mediation:mobileads-mintegral:17.0.41.1'
         implementation 'com.yandex.ads.mediation:mobileads-bigoads:5.7.0.1'
         implementation 'com.yandex.ads.mediation:mobileads-vungle:7.7.0.1'
-        implementation 'com.yandex.ads.mediation:mobileads-ironsource:9.2.0.1'
         implementation 'com.yandex.ads.mediation:mobileads-applovin:13.5.1.1'
     }
 });
