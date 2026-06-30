@@ -48,10 +48,14 @@ cdvPluginPostBuildExtras.add({
         implementation fileTree(dir: 'libs', include: ['*.jar'])
         // implementation 'com.yandex.android:mobileads-mediation:8.1.0.0'
         implementation 'com.yandex.android:mobileads:8.1.0'
-        // implementation 'com.yandex.ads.mediation:mobileads-unityads:4.16.5.0'
-        // implementation 'com.yandex.ads.mediation:mobileads-mytarget:5.45.3.1'
-        // implementation 'com.google.guava:guava:32.1.3-android'
-        // implementation 'com.yandex.ads.mediation:mobileads-vungle:7.7.0.0'
-
+        implementation 'com.yandex.ads.mediation:mobileads-unityads:4.16.5.0'
+        implementation 'com.yandex.ads.mediation:mobileads-mytarget:5.45.3.1'
+        implementation 'com.google.guava:guava:32.1.3-android'
+        implementation 'com.yandex.ads.mediation:mobileads-mintegral:17.0.41.1'
+        implementation 'com.yandex.ads.mediation:mobileads-bigoads:5.7.0.1'
+        implementation 'com.yandex.ads.mediation:mobileads-vungle:7.7.0.1'
+        implementation 'com.yandex.ads.mediation:mobileads-ironsource:9.2.0.1'
+        implementation 'com.yandex.ads.mediation:mobileads-applovin:13.5.1.1'
+        implementation 'com.yandex.ads.mediation:mobileads-google:25.2.0.0'
     }
 });
