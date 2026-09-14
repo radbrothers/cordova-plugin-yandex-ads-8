@@ -70,7 +70,7 @@ internal class BannerAdsHelper(
             if (firstShow) {
                 firstShow = false
                 cordovaWebView.view.post {
-                    cordovaWebView.loadUrl(
+                    /*cordovaWebView.loadUrl(
                         "javascript:setTimeout(function(){" +
                         "var el = document.documentElement;" +
                         "var req = el.requestFullscreen || el.webkitRequestFullscreen;" +
@@ -81,7 +81,7 @@ internal class BannerAdsHelper(
                         "}" +
                         "}, 300);"
                     )
-                }
+                }*/
             }
 
             callbackContext.success()
