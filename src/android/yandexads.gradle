@@ -15,33 +15,39 @@ cdvPluginPostBuildExtras.add({
     google()
     mavenCentral()
     // IronSource
-    maven {
+maven {
        url 'https://android-sdk.is.com/'
-    }         
-    // Pangle
-    maven { 
+}
+
+// Pangle
+maven {
        url 'https://artifact.bytedance.com/repository/pangle'
-    }        
-    // Tapjoy
-    maven { 
+}
+
+// Tapjoy
+maven {
        url "https://sdk.tapjoy.com/"
-    }        
-    // Mintegral
-    maven { 
+}
+
+// BidMachine
+maven {
+       url 'https://artifactory.bidmachine.io/bidmachine'
+}
+
+// Mintegral
+maven {
        url "https://dl-maven-android.mintegral.com/repository/mbridge_android_sdk_oversea"
-    }
-    // Chartboost
-    maven {
+}
+
+// Chartboost
+maven {
        url "https://cboost.jfrog.io/artifactory/chartboost-ads/"
-    }
-    // AppNext
-    maven {
+}
+
+// AppNext
+maven {
        url "https://dl.appnext.com/"
-    }
-    // PetalAds
-    maven {
-       url "https://developer.huawei.com/repo/"
-    }
+}
 }
 
     dependencies {
