@@ -9,11 +9,6 @@ cdvPluginPostBuildExtras.add({
           languageVersion = "1.9"
       }
     }
-    kotlin {
-    compilerOptions {
-        jvmTarget.set(JvmTarget.JVM_11)
-    }
-    }
     repositories {
     google()
     mavenCentral()
