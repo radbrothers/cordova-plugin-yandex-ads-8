@@ -8,7 +8,6 @@ cdvPluginPostBuildExtras.add({
       }
       kotlinOptions {
           jvmTarget = "1.8"
-          languageVersion = "1.9"
       }
     }
     repositories {
