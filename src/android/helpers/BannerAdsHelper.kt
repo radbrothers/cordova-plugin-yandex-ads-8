@@ -67,22 +67,22 @@ internal class BannerAdsHelper(
 
             showBannerOverlay()
 
-            if (firstShow) {
-                firstShow = false
-                /*cordovaWebView.view.post {
-                    cordovaWebView.loadUrl(
-                        "javascript:setTimeout(function(){" +
-                        "var el = document.documentElement;" +
-                        "var req = el.requestFullscreen || el.webkitRequestFullscreen;" +
-                        "var exit = document.exitFullscreen || document.webkitExitFullscreen;" +
-                        "if(req && exit){" +
-                        "req.call(el).then(function(){ exit.call(document); })" +
-                        ".catch(function(e){ console.log('fs error: ' + e); });" +
-                        "}" +
-                        "}, 300);"
-                    )
-                }*/
-            }
+            // if (firstShow) {
+            //     firstShow = false
+            //     cordovaWebView.view.post {
+            //         cordovaWebView.loadUrl(
+            //             "javascript:setTimeout(function(){" +
+            //             "var el = document.documentElement;" +
+            //             "var req = el.requestFullscreen || el.webkitRequestFullscreen;" +
+            //             "var exit = document.exitFullscreen || document.webkitExitFullscreen;" +
+            //             "if(req && exit){" +
+            //             "req.call(el).then(function(){ exit.call(document); })" +
+            //             ".catch(function(e){ console.log('fs error: ' + e); });" +
+            //             "}" +
+            //             "}, 300);"
+            //         )
+            //     }
+            // }
 
             callbackContext.success()
         }
@@ -117,30 +117,40 @@ internal class BannerAdsHelper(
         spacer.setBackgroundColor(0xFF000000.toInt())
         spacerView = spacer
 
+        // Wrap WebView in a FrameLayout so its layoutParams stays FrameLayout.LayoutParams.
+        // Cordova 13's CordovaActivity.createViews() casts WebView.layoutParams to
+        // FrameLayout.LayoutParams — adding WebView directly to a LinearLayout would change
+        // its layoutParams to LinearLayout.LayoutParams and cause a ClassCastException.
+        val wrapperFrame = FrameLayout(cordova.activity)
+        wrapperFrame.addView(view, FrameLayout.LayoutParams(
+            FrameLayout.LayoutParams.MATCH_PARENT,
+            FrameLayout.LayoutParams.MATCH_PARENT
+        ))
+
         val linearLayout = LinearLayout(cordova.activity)
         linearLayout.setBackgroundColor(0xFF000000.toInt())
 
         if (isHorizontal) {
             linearLayout.orientation = LinearLayout.HORIZONTAL
-            val webViewParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, 1.0f)
+            val wrapperParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, 1.0f)
             val spacerParams = LinearLayout.LayoutParams(containerW, LinearLayout.LayoutParams.MATCH_PARENT)
             if (bannerPosition == BANNER_POSITION_LEFT) {
                 linearLayout.addView(spacer, spacerParams)
-                linearLayout.addView(view, webViewParams)
+                linearLayout.addView(wrapperFrame, wrapperParams)
             } else {
-                linearLayout.addView(view, webViewParams)
+                linearLayout.addView(wrapperFrame, wrapperParams)
                 linearLayout.addView(spacer, spacerParams)
             }
         } else {
             linearLayout.orientation = LinearLayout.VERTICAL
-            val webViewParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1.0f)
+            val wrapperParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1.0f)
             val spacerParams = LinearLayout.LayoutParams(containerW, containerH)
             spacerParams.gravity = Gravity.CENTER_HORIZONTAL
             if (bannerPosition == BANNER_POSITION_TOP) {
                 linearLayout.addView(spacer, spacerParams)
-                linearLayout.addView(view, webViewParams)
+                linearLayout.addView(wrapperFrame, wrapperParams)
             } else {
-                linearLayout.addView(view, webViewParams)
+                linearLayout.addView(wrapperFrame, wrapperParams)
                 linearLayout.addView(spacer, spacerParams)
             }
         }
