@@ -1,5 +1,3 @@
-project.ext.set("android.enableJetifier", "false");
-
 cdvPluginPostBuildExtras.add({
     android {
       compileOptions {
@@ -52,8 +50,8 @@ maven {
     dependencies {
         implementation fileTree(dir: 'libs', include: ['*.jar'])
         implementation('com.yandex.android:mobileads-mediation:8.6.0.0') {
-    exclude group: 'com.unity3d.ads-mediation', module: 'adquality-sdk'
-}
+        exclude group: 'com.unity3d.ads-mediation', module: 'adquality-sdk'
+        }
         // implementation 'com.yandex.android:mobileads:8.6.0'
         // implementation 'com.yandex.ads.mediation:mobileads-mytarget:5.45.3.3'
         // implementation 'com.google.guava:guava:32.1.3-android'
