@@ -18,9 +18,6 @@ class YandexAdsPlugin: CDVPlugin {
     public var instreamBlockId: String?
     public var feedBlockId: String?
 
-    public var bannerAtTop: Bool?
-    public var bannerSize: NSDictionary?
-
     public var interstitialAd: InterstitialAd?
     public var rewardedAd: RewardedAd?
     public var appOpenAd: AppOpenAd?
@@ -29,14 +26,6 @@ class YandexAdsPlugin: CDVPlugin {
     public var superView: UIView?
     public var stackViewInlineBannerView: UIStackView?
     public var bannerStackView: UIView?
-    public var bannerReloaded: Bool?
-
-    override init() {
-        super.init()
-
-        self.bannerAtTop = false
-        self.bannerReloaded = false
-    }
 
     override func pluginInitialize() {
         super.pluginInitialize()
@@ -53,11 +42,9 @@ class YandexAdsPlugin: CDVPlugin {
         self.instreamBlockId = command.arguments[4] as? String ?? ""
         self.feedBlockId = command.arguments[5] as? String ?? ""
 
-        let options = command.arguments[6] as! NSDictionary;
-
-        self.bannerAtTop = options["bannerAtTop"] as? Bool;
-
-        self.bannerSize = options["bannerSize"] as? NSDictionary;
+        // options arg [6] is kept for forward compatibility but
+        // banner parameters (bannerPosition, bannerSize, overlap)
+        // are now passed via loadBanner(), matching Android behaviour.
 
         YandexAds.initializeSDK { [weak self] in
             self?.sendResult(command: command)
@@ -70,8 +57,8 @@ class YandexAdsPlugin: CDVPlugin {
 
     @objc(setUserConsent:)
     func setUserConsent(command: CDVInvokedUrlCommand) {
-        YandexAds.setUserConsent(command.arguments[0] as? Bool ?? false);
+        YandexAds.setUserConsent(command.arguments[0] as? Bool ?? false)
 
-        self.sendResult(command: command);
+        self.sendResult(command: command)
     }
 }
