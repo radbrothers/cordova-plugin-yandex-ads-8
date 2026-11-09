@@ -14,6 +14,8 @@ private var _bannerSizeParam: [String: Any]?
 private var _overlap: Bool = false
 private var _bannerLoaded: Bool = false
 private var _bannerShown: Bool = false
+private var _originalTranslatesAutoresizingMaskIntoConstraints: Bool = true
+private var _webViewOriginalConstraints: [NSLayoutConstraint] = []
 
 extension YandexAdsPlugin {
 
@@ -38,6 +40,14 @@ extension YandexAdsPlugin {
     var bannerShown: Bool {
         get { _bannerShown }
         set { _bannerShown = newValue }
+    }
+    var originalTranslatesAutoresizingMaskIntoConstraints: Bool {
+        get { _originalTranslatesAutoresizingMaskIntoConstraints }
+        set { _originalTranslatesAutoresizingMaskIntoConstraints = newValue }
+    }
+    var webViewOriginalConstraints: [NSLayoutConstraint] {
+        get { _webViewOriginalConstraints }
+        set { _webViewOriginalConstraints = newValue }
     }
 
     private var isInlineBanner: Bool {
@@ -144,6 +154,12 @@ extension YandexAdsPlugin {
     private func createSpacer() {
         guard let superView = self.superView else { return }
 
+        // Save original webView layout state before modifying
+        originalTranslatesAutoresizingMaskIntoConstraints = webView.translatesAutoresizingMaskIntoConstraints
+        webViewOriginalConstraints = superView.constraints.filter { constraint in
+            constraint.firstItem === webView || constraint.secondItem === webView
+        }
+
         let stackview = UIStackView()
         stackview.axis = .vertical
         stackview.distribution = .fill
@@ -154,6 +170,9 @@ extension YandexAdsPlugin {
         spacer.backgroundColor = .black
         spacer.translatesAutoresizingMaskIntoConstraints = false
         self.bannerStackView = spacer
+
+        // Deactivate original webView constraints before removing
+        NSLayoutConstraint.deactivate(webViewOriginalConstraints)
 
         superView.addSubview(stackview)
         webView.removeFromSuperview()
@@ -221,13 +240,23 @@ extension YandexAdsPlugin {
 
             if let superView = self.superView {
                 superView.addSubview(webView)
-                webView.translatesAutoresizingMaskIntoConstraints = false
-                NSLayoutConstraint.activate([
-                    webView.leadingAnchor.constraint(equalTo: superView.leadingAnchor),
-                    webView.trailingAnchor.constraint(equalTo: superView.trailingAnchor),
-                    webView.topAnchor.constraint(equalTo: superView.topAnchor),
-                    webView.bottomAnchor.constraint(equalTo: superView.bottomAnchor),
-                ])
+                // Restore original layout mode
+                webView.translatesAutoresizingMaskIntoConstraints = originalTranslatesAutoresizingMaskIntoConstraints
+
+                if !webViewOriginalConstraints.isEmpty {
+                    // Restore saved original constraints
+                    NSLayoutConstraint.activate(webViewOriginalConstraints)
+                    webViewOriginalConstraints = []
+                } else {
+                    // Fallback: pin webView to superView
+                    webView.translatesAutoresizingMaskIntoConstraints = false
+                    NSLayoutConstraint.activate([
+                        webView.leadingAnchor.constraint(equalTo: superView.leadingAnchor),
+                        webView.trailingAnchor.constraint(equalTo: superView.trailingAnchor),
+                        webView.topAnchor.constraint(equalTo: superView.topAnchor),
+                        webView.bottomAnchor.constraint(equalTo: superView.bottomAnchor),
+                    ])
+                }
             }
         }
 
