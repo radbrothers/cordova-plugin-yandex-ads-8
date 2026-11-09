@@ -11,16 +11,17 @@ extension YandexAdsPlugin {
             return;
         }
 
-        let request = AdRequest(adUnitID: self.interstitialBlockId!) // FIXME_SDK8: Auto-generated during migration, please review.
-        self.interstitialAdLoader.loadAd(with: request) { [weak self] result in // FIXME_SDK8: Auto-generated during migration, please review.
+        let request = AdRequest(adUnitID: self.interstitialBlockId!)
+        self.interstitialAd = nil
+        self.interstitialAdLoader.loadAd(with: request) { [weak self] result in
             guard let self = self else { return }
             switch result {
-            case .success(let interstitialAd):
-                self.interstitialAd = interstitialAd
-                self.interstitialAd?.delegate = self
+            case .success(let ad):
+                self.interstitialAd = ad
+                ad.delegate = self
                 self.emitWindowEvent(event: EVENT_INTERSTITIAL_DID_LOAD)
             case .failure(let error):
-                let data = ErrorData(id: error.adUnitID, message: error.error.localizedDescription) // FIXME_SDK8: Auto-generated during migration, please review.
+                let data = ErrorData(id: request.adUnitID, message: error.localizedDescription)
                 self.emitWindowEvent(event: EVENT_INTERSTITIAL_FAILED_TO_LOAD, data: data)
             }
         }
@@ -41,16 +42,14 @@ extension YandexAdsPlugin {
     }
 }
 
-// MARK: - InterstitialAdDelegate
-let EVENT_INTERSTITIAL_DID_FAIL_TO_SHOW_WITH_ERROR = "interstitialDidFailToShowWithError" // FIXME_SDK8: Auto-generated during migration, please review.
+let EVENT_INTERSTITIAL_DID_FAIL_TO_SHOW_WITH_ERROR = "interstitialDidFailToShowWithError"
 let EVENT_INTERSTITIAL_DID_SHOW = "interstitialDidShow"
 let EVENT_INTERSTITIAL_DID_DISMISS = "interstitialDidDismiss"
 let EVENT_INTERSTITIAL_DID_CLICK = "interstitialDidClick"
 let EVENT_INTERSTITIAL_DID_TRACK_IMPRESSION_WITH = "interstitialDidTrackImpressionWith"
 
-@MainActor // FIXME_SDK8: Auto-generated during migration, please review.
 extension YandexAdsPlugin: InterstitialAdDelegate {
-    func interstitialAd(_ interstitialAd: InterstitialAd, didFailToShow error: Error) { // FIXME_SDK8: Auto-generated during migration, please review.
+    func interstitialAd(_ interstitialAd: InterstitialAd, didFailToShow error: Error) {
         let data = ErrorData(message: error.localizedDescription)
         self.emitWindowEvent(event: EVENT_INTERSTITIAL_DID_FAIL_TO_SHOW_WITH_ERROR, data: data)
     }
@@ -60,6 +59,9 @@ extension YandexAdsPlugin: InterstitialAdDelegate {
     }
 
     func interstitialAdDidDismiss(_ interstitialAd: InterstitialAd) {
+        self.interstitialAd?.delegate = nil
+        self.interstitialAd = nil
+
         self.emitWindowEvent(event: EVENT_INTERSTITIAL_DID_DISMISS)
     }
 
@@ -67,7 +69,7 @@ extension YandexAdsPlugin: InterstitialAdDelegate {
         self.emitWindowEvent(event: EVENT_INTERSTITIAL_DID_CLICK)
     }
 
-    func interstitialAd(_ interstitialAd: InterstitialAd, didTrackImpression impressionData: ImpressionData?) { // FIXME_SDK8: Auto-generated during migration, please review.
+    func interstitialAd(_ interstitialAd: InterstitialAd, didTrackImpression impressionData: ImpressionData?) {
         self.emitWindowEvent(event: EVENT_INTERSTITIAL_DID_TRACK_IMPRESSION_WITH)
     }
 }

@@ -14,17 +14,17 @@ extension YandexAdsPlugin {
             return;
         }
 
-        let request = AdRequest(adUnitID: self.openAppBlockId!) // FIXME_SDK8: Auto-generated during migration, please review.
-        appOpenAdLoader.loadAd(with: request) { [weak self] result in // FIXME_SDK8: Auto-generated during migration, please review.
+        let request = AdRequest(adUnitID: self.openAppBlockId!)
+        self.appOpenAd = nil
+        self.appOpenAdLoader.loadAd(with: request) { [weak self] result in
             guard let self = self else { return }
             switch result {
-            case .success(let appOpenAd):
-                self.appOpenAd = appOpenAd
-                self.appOpenAd?.delegate = self
+            case .success(let ad):
+                self.appOpenAd = ad
+                ad.delegate = self
                 self.emitWindowEvent(event: EVENT_APP_OPEN_DID_LOAD)
             case .failure(let error):
-                self.appOpenAd = nil
-                let data = ErrorData(id: error.adUnitID, message: error.error.localizedDescription) // FIXME_SDK8: Auto-generated during migration, please review.
+                let data = ErrorData(id: request.adUnitID, message: error.localizedDescription)
                 self.emitWindowEvent(event: EVENT_APP_OPEN_FAILED_TO_LOAD, data: data)
             }
         }
@@ -45,7 +45,7 @@ extension YandexAdsPlugin {
     }
 }
 
-@MainActor // FIXME_SDK8: Auto-generated during migration, please review.
+// MARK: - AppOpenAdDelegate
 extension YandexAdsPlugin: AppOpenAdDelegate {
     func appOpenAdDidDismiss(_ appOpenAd: AppOpenAd) {
         self.appOpenAd?.delegate = nil
@@ -56,7 +56,7 @@ extension YandexAdsPlugin: AppOpenAdDelegate {
 
     func appOpenAd(
         _ appOpenAd: AppOpenAd,
-        didFailToShow error: Error // FIXME_SDK8: Auto-generated during migration, please review.
+        didFailToShow error: Error
     ) {
         self.appOpenAd = nil
 
@@ -72,12 +72,10 @@ extension YandexAdsPlugin: AppOpenAdDelegate {
         self.emitWindowEvent(event: EVENT_APP_OPEN_DID_CLICK)
     }
 
-    func appOpenAd(_ appOpenAd: AppOpenAd, didTrackImpression impressionData: ImpressionData?) { // FIXME_SDK8: Auto-generated during migration, please review.
+    func appOpenAd(_ appOpenAd: AppOpenAd, didTrackImpression impressionData: ImpressionData?) {
         self.emitWindowEvent(event: EVENT_APP_OPEN_DID_TRACK_IMPRESSION_WITH)
     }
 }
 
 let EVENT_APP_OPEN_DID_LOAD = "appOpenDidLoad"
 let EVENT_APP_OPEN_FAILED_TO_LOAD = "appOpenFailedToLoad"
-
-// AppOpenAdLoaderDelegate removed in SDK 8 — logic moved to loadAd completion handler above. // FIXME_SDK8: Auto-generated during migration, please review.

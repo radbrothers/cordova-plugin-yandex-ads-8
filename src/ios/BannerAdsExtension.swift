@@ -1,3 +1,4 @@
+import UIKit
 import YandexMobileAds
 
 let EVENT_BANNER_DID_LOAD = "bannerDidLoad"
@@ -6,19 +7,19 @@ let EVENT_BANNER_DID_TRACK_IMPRESSION_WITH = "bannerDidTrackImpressionWith"
 let EVENT_BANNER_FAILED_TO_LOAD = "bannerFailedToLoad"
 
 extension YandexAdsPlugin {
-    func getBannerAdView() -> BannerAdView { // FIXME_SDK8: Auto-generated during migration, please review.
+    func getBannerAdView() -> BannerAdView {
         if self.bannerAdViewCache != nil {
             return self.bannerAdViewCache!
         }
 
         let width = self.webView.safeAreaLayoutGuide.layoutFrame.width
-        var adSize = BannerAdSize.sticky(containerWidth: width) // FIXME_SDK8: Auto-generated during migration, please review.
+        var adSize = BannerAdSize.sticky(containerWidth: width)
 
         if (self.bannerSize != nil && self.bannerSize?["width"] != nil && self.bannerSize?["height"] != nil) {
-            adSize = BannerAdSize.inline(width: self.bannerSize?["width"] as! CGFloat, maxHeight: self.bannerSize?["height"] as! CGFloat) // FIXME_SDK8: Auto-generated during migration, please review.
+            adSize = BannerAdSize.inline(width: self.bannerSize?["width"] as! CGFloat, maxHeight: self.bannerSize?["height"] as! CGFloat)
         }
 
-        let adView = BannerAdView(adSize: adSize) // FIXME_SDK8: Auto-generated during migration, please review.
+        let adView = BannerAdView(adSize: adSize)
 
         adView.delegate = self
 
@@ -34,8 +35,8 @@ extension YandexAdsPlugin {
             return;
         }
 
-        let request = AdRequest(adUnitID: self.bannerBlockId!) // FIXME_SDK8: Auto-generated during migration, please review.
-        self.getBannerAdView().loadAd(with: request) // FIXME_SDK8: Auto-generated during migration, please review.
+        self.bannerReloaded = false
+        self.getBannerAdView().loadAd(with: AdRequest(adUnitID: self.bannerBlockId!))
 
         self.sendResult(command: command);
     }
@@ -75,8 +76,7 @@ extension YandexAdsPlugin {
         self.bannerReloaded = true
 
         let banner = self.getBannerAdView();
-        let reloadRequest = AdRequest(adUnitID: self.bannerBlockId!) // FIXME_SDK8: Auto-generated during migration, please review.
-        banner.loadAd(with: reloadRequest) // FIXME_SDK8: Auto-generated during migration, please review.
+        banner.loadAd(with: AdRequest(adUnitID: self.bannerBlockId!))
 
         // show banner
         if (self.bannerSize != nil && self.bannerSize?["width"] != nil && self.bannerSize?["height"] != nil) {
@@ -93,7 +93,7 @@ extension YandexAdsPlugin {
         self.sendResult(command: command);
     }
 
-    func showOverlapBanner(banner: BannerAdView) { // FIXME_SDK8: Auto-generated during migration, please review.
+    func showOverlapBanner(banner: BannerAdView) {
         if self.bannerAtTop != nil && self.bannerAtTop == true {
             banner.displayAtTop(in: webView)
         } else {
@@ -101,7 +101,7 @@ extension YandexAdsPlugin {
         }
     }
 
-    func showInlineBanner(banner: BannerAdView) { // FIXME_SDK8: Auto-generated during migration, please review.
+    func showInlineBanner(banner: BannerAdView) {
         let stackview: UIStackView = {
             let view = UIStackView()
             view.axis = .vertical
@@ -166,27 +166,28 @@ extension YandexAdsPlugin {
         self.getBannerAdView().delegate = nil
         self.bannerAdViewCache = nil
 
+        self.bannerReloaded = false
         self.sendResult(command: command);
     }
 }
 
-extension YandexAdsPlugin: BannerAdViewDelegate { // FIXME_SDK8: Auto-generated during migration, please review.
-    func bannerAdViewDidLoad(_ bannerAdView: BannerAdView) { // FIXME_SDK8: Auto-generated during migration, please review.
+extension YandexAdsPlugin: BannerAdViewDelegate {
+    func bannerAdViewDidLoad(_ adView: BannerAdView) {
         if (self.bannerReloaded == nil || self.bannerReloaded == false) {
             self.emitWindowEvent(event: EVENT_BANNER_DID_LOAD)
         }
         self.bannerReloaded = false
     }
 
-    func bannerAdViewDidClick(_ bannerAdView: BannerAdView) { // FIXME_SDK8: Auto-generated during migration, please review.
+    func bannerAdViewDidClick(_ adView: BannerAdView) {
         self.emitWindowEvent(event: EVENT_BANNER_DID_CLICK)
     }
 
-    func bannerAdView(_ bannerAdView: BannerAdView, didTrackImpression impressionData: ImpressionData?) { // FIXME_SDK8: Auto-generated during migration, please review.
+    func bannerAdView(_ adView: BannerAdView, didTrackImpression impressionData: ImpressionData?) {
         self.emitWindowEvent(event: EVENT_BANNER_DID_TRACK_IMPRESSION_WITH)
     }
 
-    func bannerAdViewDidFailLoading(_ bannerAdView: BannerAdView, error: Error) { // FIXME_SDK8: Auto-generated during migration, please review.
+    func bannerAdViewDidFailLoading(_ adView: BannerAdView, error: Error) {
         let data = ErrorData(message: error.localizedDescription)
         self.emitWindowEvent(event: EVENT_BANNER_FAILED_TO_LOAD, data: data)
     }

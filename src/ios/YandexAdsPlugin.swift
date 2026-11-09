@@ -1,4 +1,5 @@
 import Foundation
+import UIKit
 
 import YandexMobileAds
 
@@ -7,6 +8,7 @@ let PLUGIN_NOT_INITIALIZED_ERROR = [
     "message": "Plugin not initialized, call .init before ads load"
 ]
 
+@MainActor
 @objc(YandexAdsPlugin)
 class YandexAdsPlugin: CDVPlugin {
     public var rewardedBlockId: String?
@@ -22,7 +24,7 @@ class YandexAdsPlugin: CDVPlugin {
     public var interstitialAd: InterstitialAd?
     public var rewardedAd: RewardedAd?
     public var appOpenAd: AppOpenAd?
-    public var bannerAdViewCache: BannerAdView? // FIXME_SDK8: Auto-generated during migration, please review.
+    public var bannerAdViewCache: BannerAdView?
 
     public var superView: UIView?
     public var stackViewInlineBannerView: UIStackView?
@@ -57,27 +59,18 @@ class YandexAdsPlugin: CDVPlugin {
 
         self.bannerSize = options["bannerSize"] as? NSDictionary;
 
-        self.sendResult(command: command);
+        YandexAds.initializeSDK { [weak self] in
+            self?.sendResult(command: command)
+        }
     }
 
-    public lazy var interstitialAdLoader: InterstitialAdLoader = {
-        let loader = InterstitialAdLoader()
-        return loader
-    }() // FIXME_SDK8: Auto-generated during migration, please review.
-
-    public lazy var rewardedAdLoader: RewardedAdLoader = {
-        let loader = RewardedAdLoader()
-        return loader
-    }() // FIXME_SDK8: Auto-generated during migration, please review.
-
-    public lazy var appOpenAdLoader: AppOpenAdLoader = {
-        let loader = AppOpenAdLoader()
-        return loader
-    }() // FIXME_SDK8: Auto-generated during migration, please review.
+    public lazy var interstitialAdLoader = InterstitialAdLoader()
+    public lazy var rewardedAdLoader = RewardedAdLoader()
+    public lazy var appOpenAdLoader = AppOpenAdLoader()
 
     @objc(setUserConsent:)
     func setUserConsent(command: CDVInvokedUrlCommand) {
-        YandexAds.setUserConsent(command.arguments[0] as? Bool ?? false); // FIXME_SDK8: Auto-generated during migration, please review.
+        YandexAds.setUserConsent(command.arguments[0] as? Bool ?? false);
 
         self.sendResult(command: command);
     }
