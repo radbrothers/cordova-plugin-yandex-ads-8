@@ -14,8 +14,6 @@ private var _bannerSizeParam: [String: Any]?
 private var _overlap: Bool = false
 private var _bannerLoaded: Bool = false
 private var _bannerShown: Bool = false
-private var _originalTranslatesAutoresizingMaskIntoConstraints: Bool = true
-private var _webViewOriginalConstraints: [NSLayoutConstraint] = []
 
 extension YandexAdsPlugin {
 
@@ -41,15 +39,6 @@ extension YandexAdsPlugin {
         get { _bannerShown }
         set { _bannerShown = newValue }
     }
-    var originalTranslatesAutoresizingMaskIntoConstraints: Bool {
-        get { _originalTranslatesAutoresizingMaskIntoConstraints }
-        set { _originalTranslatesAutoresizingMaskIntoConstraints = newValue }
-    }
-    var webViewOriginalConstraints: [NSLayoutConstraint] {
-        get { _webViewOriginalConstraints }
-        set { _webViewOriginalConstraints = newValue }
-    }
-
     private var isInlineBanner: Bool {
         guard let size = bannerSizeParam,
               size["width"] != nil,
@@ -72,7 +61,11 @@ extension YandexAdsPlugin {
            let h = size["height"] as? CGFloat {
             adSize = BannerAdSize.inline(width: w, maxHeight: h)
         } else {
-            let width = self.webView.safeAreaLayoutGuide.layoutFrame.width
+            var width = self.webView.safeAreaLayoutGuide.layoutFrame.width
+            if width <= 0 {
+                // Fallback: webView layout may not be ready yet (e.g. after orientation change)
+                width = UIScreen.main.bounds.width
+            }
             adSize = BannerAdSize.sticky(containerWidth: width)
         }
 
@@ -154,12 +147,6 @@ extension YandexAdsPlugin {
     private func createSpacer() {
         guard let superView = self.superView else { return }
 
-        // Save original webView layout state before modifying
-        originalTranslatesAutoresizingMaskIntoConstraints = webView.translatesAutoresizingMaskIntoConstraints
-        webViewOriginalConstraints = superView.constraints.filter { constraint in
-            constraint.firstItem === webView || constraint.secondItem === webView
-        }
-
         let stackview = UIStackView()
         stackview.axis = .vertical
         stackview.distribution = .fill
@@ -171,11 +158,12 @@ extension YandexAdsPlugin {
         spacer.translatesAutoresizingMaskIntoConstraints = false
         self.bannerStackView = spacer
 
-        // Deactivate original webView constraints before removing
-        NSLayoutConstraint.deactivate(webViewOriginalConstraints)
-
         superView.addSubview(stackview)
         webView.removeFromSuperview()
+
+        // UIStackView manages arranged subviews layout —
+        // autoresizingMask must be off to avoid conflicting constraints
+        webView.translatesAutoresizingMaskIntoConstraints = false
 
         if bannerPosition == "top" {
             stackview.addArrangedSubview(spacer)
@@ -240,23 +228,10 @@ extension YandexAdsPlugin {
 
             if let superView = self.superView {
                 superView.addSubview(webView)
-                // Restore original layout mode
-                webView.translatesAutoresizingMaskIntoConstraints = originalTranslatesAutoresizingMaskIntoConstraints
-
-                if !webViewOriginalConstraints.isEmpty {
-                    // Restore saved original constraints
-                    NSLayoutConstraint.activate(webViewOriginalConstraints)
-                    webViewOriginalConstraints = []
-                } else {
-                    // Fallback: pin webView to superView
-                    webView.translatesAutoresizingMaskIntoConstraints = false
-                    NSLayoutConstraint.activate([
-                        webView.leadingAnchor.constraint(equalTo: superView.leadingAnchor),
-                        webView.trailingAnchor.constraint(equalTo: superView.trailingAnchor),
-                        webView.topAnchor.constraint(equalTo: superView.topAnchor),
-                        webView.bottomAnchor.constraint(equalTo: superView.bottomAnchor),
-                    ])
-                }
+                // Restore Cordova's original layout: autoresizingMask, not constraints
+                webView.translatesAutoresizingMaskIntoConstraints = true
+                webView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+                webView.frame = superView.bounds
             }
         }
 
