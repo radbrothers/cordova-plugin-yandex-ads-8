@@ -48,6 +48,7 @@ let EVENT_INTERSTITIAL_DID_DISMISS = "interstitialDidDismiss"
 let EVENT_INTERSTITIAL_DID_CLICK = "interstitialDidClick"
 let EVENT_INTERSTITIAL_DID_TRACK_IMPRESSION_WITH = "interstitialDidTrackImpressionWith"
 
+@MainActor
 extension YandexAdsPlugin: InterstitialAdDelegate {
     func interstitialAd(_ interstitialAd: InterstitialAd, didFailToShow error: Error) {
         let data = ErrorData(message: error.localizedDescription)

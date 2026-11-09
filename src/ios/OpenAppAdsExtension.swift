@@ -46,6 +46,7 @@ extension YandexAdsPlugin {
 }
 
 // MARK: - AppOpenAdDelegate
+@MainActor
 extension YandexAdsPlugin: AppOpenAdDelegate {
     func appOpenAdDidDismiss(_ appOpenAd: AppOpenAd) {
         self.appOpenAd?.delegate = nil

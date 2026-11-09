@@ -50,6 +50,7 @@ let EVENT_REWARDED_DID_CLICK = "rewardedDidClick"
 let EVENT_REWARDED_DID_TRACK_IMPRESSION_WITH = "rewardedDidTrackImpressionWith"
 
 // MARK: - RewardedAdDelegate
+@MainActor
 extension YandexAdsPlugin: RewardedAdDelegate {
     func rewardedAd(_ rewardedAd: RewardedAd, didReward reward: Reward) {
         self.emitWindowEvent(event: EVENT_REWARDED_DID_REWARD)
