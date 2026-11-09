@@ -71,6 +71,7 @@ extension YandexAdsPlugin {
 
         let adView = BannerAdView(adSize: adSize)
         adView.delegate = self
+        adView.translatesAutoresizingMaskIntoConstraints = false
         bannerAdViewCache = adView
         return adView
     }
@@ -192,11 +193,12 @@ extension YandexAdsPlugin {
     private func showInlineBanner(banner: BannerAdView) {
         guard let spacer = self.bannerStackView else { return }
 
-        banner.displayAtTop(in: spacer)
-
+        // Documentation: add banner via addSubview + constraints, not displayAtTop
+        spacer.addSubview(banner)
         NSLayoutConstraint.activate([
-            spacer.trailingAnchor.constraint(equalTo: banner.trailingAnchor),
-            spacer.bottomAnchor.constraint(equalTo: banner.bottomAnchor),
+            banner.leadingAnchor.constraint(equalTo: spacer.leadingAnchor),
+            banner.trailingAnchor.constraint(equalTo: spacer.trailingAnchor),
+            banner.topAnchor.constraint(equalTo: spacer.topAnchor),
         ])
     }
 
