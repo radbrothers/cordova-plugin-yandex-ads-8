@@ -6,75 +6,40 @@ let EVENT_BANNER_DID_CLICK = "bannerDidClick"
 let EVENT_BANNER_DID_TRACK_IMPRESSION_WITH = "bannerDidTrackImpressionWith"
 let EVENT_BANNER_FAILED_TO_LOAD = "bannerFailedToLoad"
 
-// MARK: - Banner parameters stored via associated objects
-// (Swift extensions cannot add stored properties, so we use static backing)
+// MARK: - State (Swift extensions cannot add stored properties, so we use file-level backing)
+//
+// Mirrors Android BannerAdsHelper:
+//  - banner is always INLINE: BannerAdSize.inline(width, maxHeight) from bannerSize
+//  - overlap == false -> a black spacer of bannerSize.height shrinks the WebView
+//  - the banner itself lives in a separate container of bannerSize (W x H),
+//    centered horizontally at top/bottom and placed ABOVE everything (over the spacer)
+//  - overlap == true  -> no spacer, the same container simply overlays the WebView
+//
+// Layout uses frames + autoresizingMask (not Auto Layout), so spacer, WebView and
+// container follow orientation changes automatically without constraint conflicts.
 
 private var _bannerPosition: String = "bottom"
-private var _bannerSizeParam: [String: Any]?
+private var _bannerWidth: CGFloat = 0
+private var _bannerHeight: CGFloat = 0
 private var _overlap: Bool = false
 private var _bannerLoaded: Bool = false
 private var _bannerShown: Bool = false
+private var _bannerContainer: UIView?
+private var _spacerView: UIView?
+
+// Original WebView layout, saved before the spacer shrinks it
+private var _savedWebViewMask: UIView.AutoresizingMask = [.flexibleWidth, .flexibleHeight]
+private var _savedWebViewUsedConstraints: Bool = false
+private var _savedWebViewConstraints: [NSLayoutConstraint] = []
+
+let BANNER_POSITION_TOP = "top"
+let BANNER_POSITION_BOTTOM = "bottom"
 
 extension YandexAdsPlugin {
 
-    // MARK: - Accessors
+    private var isTop: Bool { _bannerPosition == BANNER_POSITION_TOP }
 
-    var bannerPosition: String {
-        get { _bannerPosition }
-        set { _bannerPosition = newValue }
-    }
-    var bannerSizeParam: [String: Any]? {
-        get { _bannerSizeParam }
-        set { _bannerSizeParam = newValue }
-    }
-    var overlap: Bool {
-        get { _overlap }
-        set { _overlap = newValue }
-    }
-    var bannerLoaded: Bool {
-        get { _bannerLoaded }
-        set { _bannerLoaded = newValue }
-    }
-    var bannerShown: Bool {
-        get { _bannerShown }
-        set { _bannerShown = newValue }
-    }
-    private var isInlineBanner: Bool {
-        guard let size = bannerSizeParam,
-              size["width"] != nil,
-              size["height"] != nil else {
-            return false
-        }
-        return true
-    }
-
-    // MARK: - Create BannerAdView
-
-    private func createBannerAdView() -> BannerAdView {
-        // Destroy previous
-        bannerAdViewCache?.delegate = nil
-        bannerAdViewCache = nil
-
-        let adSize: BannerAdSize
-        if let size = bannerSizeParam,
-           let w = size["width"] as? CGFloat,
-           let h = size["height"] as? CGFloat {
-            adSize = BannerAdSize.inline(width: w, maxHeight: h)
-        } else {
-            var width = self.webView.safeAreaLayoutGuide.layoutFrame.width
-            if width <= 0 {
-                // Fallback: webView layout may not be ready yet (e.g. after orientation change)
-                width = UIScreen.main.bounds.width
-            }
-            adSize = BannerAdSize.sticky(containerWidth: width)
-        }
-
-        let adView = BannerAdView(adSize: adSize)
-        adView.delegate = self
-        adView.translatesAutoresizingMaskIntoConstraints = false
-        bannerAdViewCache = adView
-        return adView
-    }
+    private var webViewParent: UIView? { webView.superview ?? superView }
 
     // MARK: - Load
 
@@ -85,25 +50,35 @@ extension YandexAdsPlugin {
             return
         }
 
-        // Parse params from JS — same structure as Android:
         // { bannerPosition: "top"|"bottom", bannerSize: {width, height}, overlap: bool }
         if let options = command.arguments?.first as? [String: Any] {
-            bannerPosition = options["bannerPosition"] as? String ?? "bottom"
-            bannerSizeParam = options["bannerSize"] as? [String: Any]
-            overlap = options["overlap"] as? Bool ?? false
+            _bannerPosition = (options["bannerPosition"] as? String) == BANNER_POSITION_TOP
+                ? BANNER_POSITION_TOP : BANNER_POSITION_BOTTOM
+            let size = options["bannerSize"] as? [String: Any]
+            _bannerWidth = CGFloat((size?["width"] as? NSNumber)?.doubleValue ?? 0)
+            _bannerHeight = CGFloat((size?["height"] as? NSNumber)?.doubleValue ?? 0)
+            _overlap = options["overlap"] as? Bool ?? false
         }
 
-        bannerLoaded = false
-        bannerShown = false
+        if _bannerWidth <= 0 || _bannerHeight <= 0 {
+            self.sendError(command: command, code: "invalid_banner_size", message: "bannerSize.width and bannerSize.height (in points) are required")
+            return
+        }
 
-        // For inline (non-overlap) banner, create the spacer layout BEFORE loading
-        // so WebView is already resized when the ad arrives.
-        if isInlineBanner && !overlap && stackViewInlineBannerView == nil {
+        _bannerLoaded = false
+        _bannerShown = false
+
+        destroyBanner()
+
+        if !_overlap && _spacerView == nil {
             createSpacer()
         }
 
-        let banner = createBannerAdView()
-        banner.loadAd(with: AdRequest(adUnitID: self.bannerBlockId!))
+        let adView = BannerAdView(adSize: BannerAdSize.inline(width: _bannerWidth, maxHeight: _bannerHeight))
+        adView.delegate = self
+        bannerAdViewCache = adView
+
+        adView.loadAd(with: AdRequest(adUnitID: self.bannerBlockId!))
 
         self.sendResult(command: command)
     }
@@ -117,89 +92,100 @@ extension YandexAdsPlugin {
             return
         }
 
-        guard let banner = self.bannerAdViewCache, bannerLoaded, !bannerShown else {
+        guard let banner = bannerAdViewCache, _bannerLoaded, !_bannerShown,
+              let parent = webViewParent else {
             self.sendResult(command: command)
             return
         }
 
-        bannerShown = true
+        _bannerShown = true
 
-        if isInlineBanner && !overlap {
-            showInlineBanner(banner: banner)
-        } else {
-            showOverlapBanner(banner: banner)
-        }
+        // Container W x H, centered horizontally, glued to top or bottom (Android: gravity)
+        let bounds = parent.bounds
+        let w = min(_bannerWidth, bounds.width)
+        let h = min(_bannerHeight, bounds.height)
+        let container = UIView(frame: CGRect(
+            x: (bounds.width - w) / 2,
+            y: isTop ? 0 : bounds.height - h,
+            width: w,
+            height: h
+        ))
+        container.backgroundColor = .clear
+        container.autoresizingMask = isTop
+            ? [.flexibleLeftMargin, .flexibleRightMargin, .flexibleBottomMargin]
+            : [.flexibleLeftMargin, .flexibleRightMargin, .flexibleTopMargin]
+
+        parent.addSubview(container)
+        parent.bringSubviewToFront(container)
+        _bannerContainer = container
+
+        // Banner centered inside the container (Android: CENTER_IN_PARENT)
+        banner.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(banner)
+        NSLayoutConstraint.activate([
+            banner.centerXAnchor.constraint(equalTo: container.centerXAnchor),
+            banner.centerYAnchor.constraint(equalTo: container.centerYAnchor),
+        ])
 
         self.sendResult(command: command)
     }
 
-    // MARK: - Overlap banner (overlay on top of WebView)
-
-    private func showOverlapBanner(banner: BannerAdView) {
-        if bannerPosition == "top" {
-            banner.displayAtTop(in: webView)
-        } else {
-            banner.displayAtBottom(in: webView)
-        }
-    }
-
-    // MARK: - Inline banner (push WebView with spacer)
+    // MARK: - Spacer (shrinks WebView, overlap == false)
 
     private func createSpacer() {
-        guard let superView = self.superView else { return }
+        guard let parent = webViewParent else { return }
 
-        let stackview = UIStackView()
-        stackview.axis = .vertical
-        stackview.distribution = .fill
-        stackview.translatesAutoresizingMaskIntoConstraints = false
-        self.stackViewInlineBannerView = stackview
+        // Save WebView layout. If it is constraint-based, switch it to frames for the
+        // time the spacer exists, and restore the original constraints on hide.
+        _savedWebViewMask = webView.autoresizingMask
+        _savedWebViewUsedConstraints = !webView.translatesAutoresizingMaskIntoConstraints
+        _savedWebViewConstraints = []
+        if _savedWebViewUsedConstraints {
+            _savedWebViewConstraints = parent.constraints.filter {
+                $0.firstItem === webView || $0.secondItem === webView
+            }
+            NSLayoutConstraint.deactivate(_savedWebViewConstraints)
+            webView.translatesAutoresizingMaskIntoConstraints = true
+        }
+
+        let bounds = parent.bounds
+        let h = min(_bannerHeight, bounds.height)
 
         let spacer = UIView()
         spacer.backgroundColor = .black
-        spacer.translatesAutoresizingMaskIntoConstraints = false
-        self.bannerStackView = spacer
 
-        superView.addSubview(stackview)
-        webView.removeFromSuperview()
-
-        // UIStackView manages arranged subviews layout —
-        // autoresizingMask must be off to avoid conflicting constraints
-        webView.translatesAutoresizingMaskIntoConstraints = false
-
-        if bannerPosition == "top" {
-            stackview.addArrangedSubview(spacer)
-            stackview.addArrangedSubview(webView)
+        if isTop {
+            spacer.frame = CGRect(x: 0, y: 0, width: bounds.width, height: h)
+            spacer.autoresizingMask = [.flexibleWidth, .flexibleBottomMargin]
+            webView.frame = CGRect(x: 0, y: h, width: bounds.width, height: bounds.height - h)
         } else {
-            stackview.addArrangedSubview(webView)
-            stackview.addArrangedSubview(spacer)
+            spacer.frame = CGRect(x: 0, y: bounds.height - h, width: bounds.width, height: h)
+            spacer.autoresizingMask = [.flexibleWidth, .flexibleTopMargin]
+            webView.frame = CGRect(x: 0, y: 0, width: bounds.width, height: bounds.height - h)
         }
+        // Fixed margin on the spacer side + flexible height -> gap is kept on rotation
+        webView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
 
-        var constraints = [
-            stackview.leadingAnchor.constraint(equalTo: superView.leadingAnchor),
-            stackview.trailingAnchor.constraint(equalTo: superView.trailingAnchor),
-            stackview.topAnchor.constraint(equalTo: superView.topAnchor),
-            stackview.bottomAnchor.constraint(equalTo: superView.bottomAnchor),
-        ]
-
-        // Fix spacer height from bannerSize
-        if let size = bannerSizeParam,
-           let h = size["height"] as? CGFloat {
-            constraints.append(spacer.heightAnchor.constraint(equalToConstant: h))
-        }
-
-        NSLayoutConstraint.activate(constraints)
+        parent.addSubview(spacer)
+        _spacerView = spacer
     }
 
-    private func showInlineBanner(banner: BannerAdView) {
-        guard let spacer = self.bannerStackView else { return }
+    private func removeSpacer() {
+        guard let spacer = _spacerView else { return }
+        spacer.removeFromSuperview()
+        _spacerView = nil
 
-        // Documentation: add banner via addSubview + constraints, not displayAtTop
-        spacer.addSubview(banner)
-        NSLayoutConstraint.activate([
-            banner.leadingAnchor.constraint(equalTo: spacer.leadingAnchor),
-            banner.trailingAnchor.constraint(equalTo: spacer.trailingAnchor),
-            banner.topAnchor.constraint(equalTo: spacer.topAnchor),
-        ])
+        guard let parent = webViewParent else { return }
+
+        webView.frame = parent.bounds
+        webView.autoresizingMask = _savedWebViewMask
+
+        if _savedWebViewUsedConstraints {
+            webView.translatesAutoresizingMaskIntoConstraints = false
+            NSLayoutConstraint.activate(_savedWebViewConstraints)
+        }
+        _savedWebViewConstraints = []
+        _savedWebViewUsedConstraints = false
     }
 
     // MARK: - Hide
@@ -216,30 +202,20 @@ extension YandexAdsPlugin {
     }
 
     private func hideBannerView() {
-        bannerShown = false
-        bannerLoaded = false
+        _bannerShown = false
+        _bannerLoaded = false
 
-        // Remove overlay banner
+        removeSpacer()
+        destroyBanner()
+    }
+
+    private func destroyBanner() {
         bannerAdViewCache?.removeFromSuperview()
-
-        // Restore WebView from stack layout if inline
-        if stackViewInlineBannerView != nil {
-            stackViewInlineBannerView?.removeFromSuperview()
-            stackViewInlineBannerView = nil
-            bannerStackView = nil
-
-            if let superView = self.superView {
-                superView.addSubview(webView)
-                // Restore Cordova's original layout: autoresizingMask, not constraints
-                webView.translatesAutoresizingMaskIntoConstraints = true
-                webView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-                webView.frame = superView.bounds
-            }
-        }
-
-        // Destroy banner
         bannerAdViewCache?.delegate = nil
         bannerAdViewCache = nil
+
+        _bannerContainer?.removeFromSuperview()
+        _bannerContainer = nil
     }
 }
 
@@ -248,7 +224,7 @@ extension YandexAdsPlugin {
 @MainActor
 extension YandexAdsPlugin: BannerAdViewDelegate {
     func bannerAdViewDidLoad(_ adView: BannerAdView) {
-        bannerLoaded = true
+        _bannerLoaded = true
         self.emitWindowEvent(event: EVENT_BANNER_DID_LOAD)
     }
 
