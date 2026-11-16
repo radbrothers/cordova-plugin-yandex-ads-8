@@ -67,6 +67,9 @@
             <feature name="YandexAdsPlugin">
                 <param name="ios-package" value="YandexAdsPlugin" />
             </feature>
+			<preference name="deployment-target" value="15.0" />
+            <preference name="IPHONEOS_DEPLOYMENT_TARGET" value="15.0" />
+            <preference name="ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES" value="YES" />
         </config-file>
 	    
         <source-file src="src/ios/Common.swift" />
