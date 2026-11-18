@@ -6,17 +6,55 @@ let EVENT_BANNER_DID_CLICK = "bannerDidClick"
 let EVENT_BANNER_DID_TRACK_IMPRESSION_WITH = "bannerDidTrackImpressionWith"
 let EVENT_BANNER_FAILED_TO_LOAD = "bannerFailedToLoad"
 
-// MARK: - State (Swift extensions cannot add stored properties, so we use file-level backing)
+// MARK: - Overview
 //
 // Mirrors Android BannerAdsHelper:
 //  - banner is always INLINE: BannerAdSize.inline(width, maxHeight) from bannerSize
-//  - overlap == false -> a black spacer of bannerSize.height shrinks the WebView
+//  - overlap == false -> a black spacer shrinks the WebView
 //  - the banner itself lives in a separate container of bannerSize (W x H),
 //    centered horizontally at top/bottom and placed ABOVE everything (over the spacer)
 //  - overlap == true  -> no spacer, the same container simply overlays the WebView
 //
-// Layout uses frames + autoresizingMask (not Auto Layout), so spacer, WebView and
-// container follow orientation changes automatically without constraint conflicts.
+// Safe area:
+//  - the banner container sits at the edge of the SAFE AREA (below the Dynamic Island /
+//    notch for "top", above the Home indicator for "bottom") and is centered inside the
+//    safe area horizontally (landscape notch on the side)
+//  - the spacer spans from the SCREEN edge to the far edge of the banner:
+//    height = safe area inset + banner height
+//
+// Relayout:
+//  - an invisible full-screen BannerLayoutObserverView gets layoutSubviews /
+//    safeAreaInsetsDidChange from UIKit on every rotation, resize or safe area change,
+//    and recomputes the frames of spacer, WebView and banner container.
+
+/// Invisible full-size view that reports every layout / safe area change.
+final class BannerLayoutObserverView: UIView {
+    var onLayout: (() -> Void)?
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        backgroundColor = .clear
+        isUserInteractionEnabled = false
+        isAccessibilityElement = false
+        autoresizingMask = [.flexibleWidth, .flexibleHeight]
+    }
+
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        onLayout?()
+    }
+
+    override func safeAreaInsetsDidChange() {
+        super.safeAreaInsetsDidChange()
+        onLayout?()
+    }
+}
+
+// MARK: - State (Swift extensions cannot add stored properties, so we use file-level backing)
 
 private var _bannerPosition: String = "bottom"
 private var _bannerWidth: CGFloat = 0
@@ -26,6 +64,8 @@ private var _bannerLoaded: Bool = false
 private var _bannerShown: Bool = false
 private var _bannerContainer: UIView?
 private var _spacerView: UIView?
+private var _layoutObserver: BannerLayoutObserverView?
+private var _isRelayouting: Bool = false
 
 // Original WebView layout, saved before the spacer shrinks it
 private var _savedWebViewMask: UIView.AutoresizingMask = [.flexibleWidth, .flexibleHeight]
@@ -100,23 +140,11 @@ extension YandexAdsPlugin {
 
         _bannerShown = true
 
-        // Container W x H, centered horizontally, glued to top or bottom (Android: gravity)
-        let bounds = parent.bounds
-        let w = min(_bannerWidth, bounds.width)
-        let h = min(_bannerHeight, bounds.height)
-        let container = UIView(frame: CGRect(
-            x: (bounds.width - w) / 2,
-            y: isTop ? 0 : bounds.height - h,
-            width: w,
-            height: h
-        ))
+        // Container W x H; its frame is set in relayoutBanner()
+        let container = UIView()
         container.backgroundColor = .clear
-        container.autoresizingMask = isTop
-            ? [.flexibleLeftMargin, .flexibleRightMargin, .flexibleBottomMargin]
-            : [.flexibleLeftMargin, .flexibleRightMargin, .flexibleTopMargin]
-
+        container.autoresizingMask = []
         parent.addSubview(container)
-        parent.bringSubviewToFront(container)
         _bannerContainer = container
 
         // Banner centered inside the container (Android: CENTER_IN_PARENT)
@@ -126,6 +154,9 @@ extension YandexAdsPlugin {
             banner.centerXAnchor.constraint(equalTo: container.centerXAnchor),
             banner.centerYAnchor.constraint(equalTo: container.centerYAnchor),
         ])
+
+        ensureLayoutObserver()
+        relayoutBanner()
 
         self.sendResult(command: command)
     }
@@ -148,26 +179,14 @@ extension YandexAdsPlugin {
             webView.translatesAutoresizingMaskIntoConstraints = true
         }
 
-        let bounds = parent.bounds
-        let h = min(_bannerHeight, bounds.height)
-
         let spacer = UIView()
         spacer.backgroundColor = .black
-
-        if isTop {
-            spacer.frame = CGRect(x: 0, y: 0, width: bounds.width, height: h)
-            spacer.autoresizingMask = [.flexibleWidth, .flexibleBottomMargin]
-            webView.frame = CGRect(x: 0, y: h, width: bounds.width, height: bounds.height - h)
-        } else {
-            spacer.frame = CGRect(x: 0, y: bounds.height - h, width: bounds.width, height: h)
-            spacer.autoresizingMask = [.flexibleWidth, .flexibleTopMargin]
-            webView.frame = CGRect(x: 0, y: 0, width: bounds.width, height: bounds.height - h)
-        }
-        // Fixed margin on the spacer side + flexible height -> gap is kept on rotation
-        webView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-
+        spacer.autoresizingMask = []
         parent.addSubview(spacer)
         _spacerView = spacer
+
+        ensureLayoutObserver()
+        relayoutBanner()
     }
 
     private func removeSpacer() {
@@ -188,6 +207,70 @@ extension YandexAdsPlugin {
         _savedWebViewUsedConstraints = false
     }
 
+    // MARK: - Safe-area aware layout
+
+    private func ensureLayoutObserver() {
+        guard _layoutObserver == nil, let parent = webViewParent else { return }
+
+        let observer = BannerLayoutObserverView(frame: parent.bounds)
+        observer.onLayout = { [weak self] in
+            self?.relayoutBanner()
+        }
+        // Behind everything, never intercepts touches
+        parent.insertSubview(observer, at: 0)
+        _layoutObserver = observer
+    }
+
+    private func removeLayoutObserver() {
+        _layoutObserver?.onLayout = nil
+        _layoutObserver?.removeFromSuperview()
+        _layoutObserver = nil
+    }
+
+    /// Recomputes spacer, WebView and banner container frames from the current
+    /// bounds and safe area insets. Called on show, on spacer creation and by the
+    /// layout observer on every rotation / resize / safe area change.
+    private func relayoutBanner() {
+        guard !_isRelayouting, let parent = webViewParent else { return }
+        guard _spacerView != nil || _bannerContainer != nil else { return }
+
+        _isRelayouting = true
+        defer { _isRelayouting = false }
+
+        let bounds = parent.bounds
+        let insets = (_layoutObserver ?? parent).safeAreaInsets
+
+        // Inset on the banner's edge: Dynamic Island / notch (top) or Home indicator (bottom)
+        let edgeInset = isTop ? insets.top : insets.bottom
+        let bannerH = min(_bannerHeight, max(0, bounds.height - edgeInset))
+
+        // Spacer: from the screen edge to the far edge of the banner
+        if let spacer = _spacerView {
+            let reserved = min(bannerH + edgeInset, bounds.height)
+            if isTop {
+                spacer.frame = CGRect(x: 0, y: 0, width: bounds.width, height: reserved)
+                webView.frame = CGRect(x: 0, y: reserved, width: bounds.width, height: bounds.height - reserved)
+            } else {
+                spacer.frame = CGRect(x: 0, y: bounds.height - reserved, width: bounds.width, height: reserved)
+                webView.frame = CGRect(x: 0, y: 0, width: bounds.width, height: bounds.height - reserved)
+            }
+        }
+
+        // Banner container: at the safe area edge, centered inside the safe area horizontally
+        if let container = _bannerContainer {
+            let safeX = insets.left
+            let safeW = max(0, bounds.width - insets.left - insets.right)
+            let bannerW = min(_bannerWidth, safeW)
+            container.frame = CGRect(
+                x: safeX + (safeW - bannerW) / 2,
+                y: isTop ? edgeInset : bounds.height - edgeInset - bannerH,
+                width: bannerW,
+                height: bannerH
+            )
+            parent.bringSubviewToFront(container)
+        }
+    }
+
     // MARK: - Hide
 
     @objc(hideBanner:)
@@ -205,6 +288,7 @@ extension YandexAdsPlugin {
         _bannerShown = false
         _bannerLoaded = false
 
+        removeLayoutObserver()
         removeSpacer()
         destroyBanner()
     }
