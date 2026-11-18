@@ -114,6 +114,17 @@ extension YandexAdsPlugin {
             createSpacer()
         }
 
+        // Never request an ad wider than the safe area: window.innerWidth from JS is the full
+        // WebView width (including notch / camera areas), and on devices with asymmetric
+        // insets (e.g. iPhone Duo outer display) a wider banner would stick out past the edge.
+        if let parent = webViewParent {
+            let insets = parent.safeAreaInsets
+            let safeWidth = parent.bounds.width - insets.left - insets.right
+            if safeWidth > 0 {
+                _bannerWidth = min(_bannerWidth, safeWidth)
+            }
+        }
+
         let adView = BannerAdView(adSize: BannerAdSize.inline(width: _bannerWidth, maxHeight: _bannerHeight))
         adView.delegate = self
         bannerAdViewCache = adView
@@ -144,6 +155,9 @@ extension YandexAdsPlugin {
         let container = UIView()
         container.backgroundColor = .clear
         container.autoresizingMask = []
+        // If the available width shrinks after load (fold / unfold, Split View),
+        // clip the banner to the container instead of letting it go past the screen edge
+        container.clipsToBounds = true
         parent.addSubview(container)
         _bannerContainer = container
 
